@@ -81,12 +81,12 @@ class _GoalProgressCardDetailsState extends State<GoalProgressCardDetails> {
             },
 
             onRowTap: (s, i) {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const StudentDetailsPage(),
-                ),
-              );
+              // Navigator.push(
+              //   context,
+              //   MaterialPageRoute(
+              //     builder: (_) => const StudentDetailsPage(),
+              //   ),
+              // );
             },
 
             rowBuilder: (s, i) => [

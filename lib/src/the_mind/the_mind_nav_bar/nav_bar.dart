@@ -17,8 +17,10 @@ import 'package:srm/src/the_mind/the_mind_nav_bar/widget/top_bar.dart';
 import 'package:srm/src/the_mind/the_mind_profile/presentation/the_mind_profile_page.dart';
 import 'package:srm/src/the_mind/the_mind_salary/presentation/the_mind_salary_page.dart';
 import 'package:srm/src/the_mind/the_mind_settings/presentation/the_mind_settings_page.dart';
+import 'package:srm/src/the_mind/the_mind_students/data/datasources/student_api_service.dart';
 import 'package:srm/src/the_mind/the_mind_students/presentation/faol_lidlar/faol_lidlar_page.dart';
-import 'package:srm/src/the_mind/the_mind_students/data/model/students/students_models.dart';
+import 'package:srm/src/the_mind/the_mind_students/data/model/students/build_students_table_ltem.dart';
+import 'package:srm/src/the_mind/the_mind_students/presentation/student/cubit/student_cubit.dart';
 import 'package:srm/src/the_mind/the_mind_students/presentation/student/the_mind_students_page.dart';
 import 'package:srm/src/the_mind/the_mind_students/presentation/student/widgets/add_payment/add_payment_dialog_responsive.dart';
 import 'package:srm/src/the_mind/the_mind_students/presentation/student/widgets/add_student/add_student_dialog.dart';
@@ -166,13 +168,17 @@ class _WebCustomBottomNavState extends State<WebCustomBottomNav> {
       case 2:
         return const FaolLidlarPage();
       case 3:
-        return const TheMindStudentsPage();
+        return BlocProvider(
+          create: (context) =>
+              StudentCubit(repository: StudentRepository())..getStudents(),
+          child: const TheMindStudentsPage(),
+        );
       case 4:
         return const TheMindGroup();
       case 5:
         return BlocProvider(
           create: (_) => ExamCubit(ExamApiService())..getExams(),
-          child:  TheMindExamsPage(),
+          child: TheMindExamsPage(),
         );
       case 6:
         return const TheMindTeacherPage();

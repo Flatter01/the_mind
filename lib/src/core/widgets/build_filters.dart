@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:srm/src/core/widgets/card/app_card.dart';
 import 'package:srm/src/the_mind/the_mind_group/presentation/group_details/presentation/create_group_page.dart';
-import 'package:srm/src/the_mind/the_mind_students/data/model/students/students_models.dart';
+import 'package:srm/src/the_mind/the_mind_students/data/model/students/build_students_table_ltem.dart';
 import 'package:srm/src/the_mind/the_mind_students/presentation/student/widgets/add_payment/add_payment_dialog_responsive.dart';
 import 'package:srm/src/the_mind/the_mind_students/presentation/student/widgets/add_student/add_student_dialog_responsive.dart';
 

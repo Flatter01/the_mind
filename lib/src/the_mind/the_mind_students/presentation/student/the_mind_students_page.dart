@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:srm/src/core/colors/app_colors.dart';
 import 'package:srm/src/core/widgets/analytica/build_analytics.dart';
 import 'package:srm/src/core/widgets/build_search_bar.dart';
 import 'package:srm/src/core/widgets/build_filters.dart';
-import 'package:srm/src/the_mind/the_mind_students/data/model/students/students_models.dart';
+import 'package:srm/src/the_mind/the_mind_students/data/model/students/build_students_table_ltem.dart';
+import 'package:srm/src/the_mind/the_mind_students/presentation/student/cubit/student_cubit.dart';
+import 'package:srm/src/the_mind/the_mind_students/presentation/student/cubit/student_state.dart';
 import 'package:srm/src/the_mind/the_mind_students/presentation/student/widgets/build_students_table.dart';
 
 class TheMindStudentsPage extends StatefulWidget {
@@ -55,7 +58,7 @@ class _TheMindStudentsPageState extends State<TheMindStudentsPage> {
     ),
   ];
 
-  final List<BuildStudentsTableItem> students = [
+  final List<BuildStudentsTableItem> student = [
     BuildStudentsTableItem(
       id: 0,
       name: "Aliyev Bekzod",
@@ -112,42 +115,72 @@ class _TheMindStudentsPageState extends State<TheMindStudentsPage> {
       missedLessons: 2,
     ),
   ];
+  @override
+  void initState() {
+    super.initState();
+    context.read<StudentCubit>().getStudents();
+  }
+
   String _search = "";
 
   @override
   Widget build(BuildContext context) {
-    final filtered = students.where((w) {
-      final q = _search.toLowerCase();
-      return w.name.toLowerCase().contains(q) ||
-          w.status.toLowerCase().contains(q) ||
-          w.group.toLowerCase().contains(q) ||
-          w.phone.toLowerCase().contains(q);
-    }).toList();
-    return Scaffold(
-      backgroundColor: AppColors.bgColor,
-      body: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        children: [
-          BuildAnalytics(items: analyticsItems, onTap: (items) {}),
-          const SizedBox(height: 20),
-          BuildSearchBar(onChanged: (v) => setState(() => _search = v)),
+    return BlocBuilder<StudentCubit, StudentState>(
+      builder: (context, state) {
+        if (state is StudentLoading) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (state is StudentError) {
+          print("Errooooor ${state.message}");
+          return Center(child: Text(state.message));
+        }
+        if (state is StudentLoaded) {
+          final students = state.students;
 
-          const SizedBox(height: 16),
+          final filtered = students.where((s) {
+            final q = _search.toLowerCase();
 
-          BuildFilters(
-            teachers: teachers,
-            courses: courses,
-            students: students,
-            selectedDayType: selectedDayType,
-            selectedTeacher: selectedTeacher,
-            selectedCourse: selectedCourse,
-            selectedDebt: selectedDebt,
-          ),
-          const SizedBox(height: 16),
-          BuildStudentsTable(students: students),
-          const SizedBox(height: 20),
-        ],
-      ),
+            return (s.firstName ?? "").toLowerCase().contains(q) ||
+                (s.lastName ?? "").toLowerCase().contains(q) ||
+                (s.phone ?? "").toLowerCase().contains(q) ||
+                (s.groupName ?? "").toLowerCase().contains(q);
+          }).toList();
+
+          return Scaffold(
+            backgroundColor: AppColors.bgColor,
+            body: ListView(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              children: [
+                BuildAnalytics(items: analyticsItems, onTap: (items) {}),
+                const SizedBox(height: 20),
+                BuildSearchBar(
+                  onChanged: (v) {
+                    setState(() {
+                      _search = v;
+                    });
+                  },
+                ),
+
+                const SizedBox(height: 16),
+
+                BuildFilters(
+                  teachers: teachers,
+                  courses: courses,
+                  students: student,
+                  selectedDayType: selectedDayType,
+                  selectedTeacher: selectedTeacher,
+                  selectedCourse: selectedCourse,
+                  selectedDebt: selectedDebt,
+                ),
+                const SizedBox(height: 16),
+                BuildStudentsTable(students: filtered),
+                const SizedBox(height: 20),
+              ],
+            ),
+          );
+        }
+        return SizedBox();
+      },
     );
   }
 }

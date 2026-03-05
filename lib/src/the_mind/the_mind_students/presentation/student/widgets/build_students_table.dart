@@ -1,15 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:srm/src/core/colors/app_colors.dart';
-import 'package:srm/src/the_mind/the_mind_students/data/model/students/students_models.dart';
+import 'package:srm/src/the_mind/the_mind_students/data/model/students/build_students_table_ltem.dart';
+import 'package:srm/src/the_mind/the_mind_students/data/model/students/student_model.dart';
 import 'package:srm/src/the_mind/the_mind_students/presentation/student/student_details.dart';
 
 class BuildStudentsTable extends StatelessWidget {
-  final List<BuildStudentsTableItem> students;
+  final List<StudentModel> students;
 
-  const BuildStudentsTable({
-    super.key,
-    required this.students,
-  });
+  const BuildStudentsTable({super.key, required this.students});
 
   @override
   Widget build(BuildContext context) {
@@ -71,9 +69,10 @@ class BuildStudentsTable extends StatelessWidget {
   }
 
   /// ---------------- ROW ----------------
-  TableRow _tableRow(BuildStudentsTableItem s, BuildContext context) {
+  TableRow _tableRow(StudentModel s, BuildContext context) {
     final bool isDebtor = s.status.toLowerCase() == "qarzdor";
-    final bool isTrial = s.status.toLowerCase() == "trial" ||
+    final bool isTrial =
+        s.status.toLowerCase() == "trial" ||
         s.status.toLowerCase() == "probniy dars" ||
         s.status.toLowerCase() == "пробный урок";
 
@@ -88,25 +87,19 @@ class BuildStudentsTable extends StatelessWidget {
 
     return TableRow(
       children: [
-        _touch(context, _cell(s.name)),
-        _touch(context, _cell(s.phone)),
-        _touch(context, _cell(s.group)),
-        _touch(context, _cell(s.teacher)),
+        _touch(context, _cell("${s.lastName}${s.firstName}"), s),
+        _touch(context, _cell(s.phone ?? ""), s),
+        _touch(context, _cell(s.groupName ?? ""), s),
+        _touch(context, _cell(s.teacherName ?? ""), s),
         _touch(
           context,
           _cell(
             s.balance,
             color: isDebtor ? Colors.redAccent : const Color(0xFF0EA400),
           ),
+          s,
         ),
-        _touch(
-          context,
-          _cell(
-            s.status,
-            bold: true,
-            color: statusColor,
-          ),
-        ),
+        _touch(context, _cell(s.status, bold: true, color: statusColor), s),
 
         /// ----------- MENU -----------
         Padding(
@@ -121,9 +114,9 @@ class BuildStudentsTable extends StatelessWidget {
               icon: const Icon(Icons.more_horiz, color: Colors.grey),
               onSelected: (value) {
                 if (value == 'delete') {
-                  debugPrint("O'chirish: ${s.name}");
+                  debugPrint("O'chirish: ${s.lastName}${s.firstName}");
                 } else if (value == 'blacklist') {
-                  debugPrint("Muzlash: ${s.name}");
+                  debugPrint("Muzlash: ${s.lastName}${s.firstName}");
                 }
               },
               itemBuilder: (context) => const [
@@ -137,14 +130,13 @@ class BuildStudentsTable extends StatelessWidget {
     );
   }
 
-  /// ---------------- TAP ----------------
-  Widget _touch(BuildContext context, Widget child) {
+  Widget _touch(BuildContext context, Widget child, StudentModel student) {
     return InkWell(
       onTap: () {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => const StudentDetailsPage(),
+            builder: (_) => StudentDetailsPage(student: student),
           ),
         );
       },
@@ -167,7 +159,6 @@ class BuildStudentsTable extends StatelessWidget {
     );
   }
 }
-
 
 /// ---------------- HEADER CELL ----------------
 class _HeaderCell extends StatelessWidget {

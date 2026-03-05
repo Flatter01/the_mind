@@ -130,10 +130,10 @@ class BuildTrialLesson extends StatelessWidget {
   Widget _tap(BuildContext context, Widget child) {
     return InkWell(
       onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const StudentDetailsPage()),
-        );
+        // Navigator.push(
+        //   context,
+        //   MaterialPageRoute(builder: (_) => const StudentDetailsPage()),
+        // );
       },
       child: child,
     );

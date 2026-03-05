@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:srm/src/the_mind/the_mind_students/presentation/student/student_details.dart';
 import 'package:srm/src/the_mind/the_mind_students/presentation/student/widgets/students_details/student_actions_menu.dart';
 import 'package:srm/src/the_mind/the_mind_students/presentation/student/widgets/students_details/students_card.dart';
 import 'package:srm/src/the_mind/the_mind_students/presentation/student/widgets/students_details/students_info.dart';
 import 'package:srm/src/the_mind/the_mind_students/presentation/student/widgets/students_details/title.dart';
 
 class StudentsMainInfo extends StatefulWidget {
-  final String fullName;
+  final String lastName;
+  final String firstName;
   final String gender;
   final String birthDate;
   final String phone;
@@ -14,14 +14,15 @@ class StudentsMainInfo extends StatefulWidget {
   final String currentGroup;
   final String abonementName;
   final int abonementPrice;
-  final int discountAmount; // <-- теперь сумма
-  final StudentStatus status;
+  final int discountAmount;
+  final String statusDisplay;
   final String? deactivateReason;
   final String? deactivateDescription;
 
   const StudentsMainInfo({
     super.key,
-    required this.fullName,
+    required this.lastName,
+    required this.firstName,
     required this.gender,
     required this.birthDate,
     required this.phone,
@@ -30,7 +31,7 @@ class StudentsMainInfo extends StatefulWidget {
     required this.abonementName,
     required this.abonementPrice,
     required this.discountAmount,
-    required this.status,
+    required this.statusDisplay,
     this.deactivateReason,
     this.deactivateDescription,
   });
@@ -41,7 +42,7 @@ class StudentsMainInfo extends StatefulWidget {
 
 class _StudentsMainInfoState extends State<StudentsMainInfo> {
   late int discountAmount;
-  late StudentStatus status;
+  late String statusDisplay;
   String? deactivateReason;
   String? deactivateDescription;
 
@@ -51,7 +52,7 @@ class _StudentsMainInfoState extends State<StudentsMainInfo> {
   void initState() {
     super.initState();
     discountAmount = widget.discountAmount;
-    status = widget.status;
+    statusDisplay = widget.statusDisplay;
     deactivateReason = widget.deactivateReason;
     deactivateDescription = widget.deactivateDescription;
 
@@ -74,7 +75,10 @@ class _StudentsMainInfoState extends State<StudentsMainInfo> {
             ),
             const SizedBox(height: 16),
 
-            StudentsInfo.info("Full name", widget.fullName),
+            StudentsInfo.info(
+              "Full name",
+              "${widget.lastName} ${widget.firstName}",
+            ),
             StudentsInfo.info("Gender", widget.gender),
             StudentsInfo.info("Birth date", widget.birthDate),
             StudentsInfo.info("Phone", widget.phone),
@@ -85,11 +89,9 @@ class _StudentsMainInfoState extends State<StudentsMainInfo> {
             StudentsInfo.info("Balance", widget.balance, highlight: true),
 
             const SizedBox(height: 12),
-
             StudentsInfo.info("Abonement", widget.abonementName),
 
             const SizedBox(height: 8),
-
             Row(
               children: [
                 Text(
@@ -111,7 +113,6 @@ class _StudentsMainInfoState extends State<StudentsMainInfo> {
             ),
 
             const SizedBox(height: 12),
-
             Row(
               children: [
                 const Text("Discount (UZS)"),
@@ -127,7 +128,6 @@ class _StudentsMainInfoState extends State<StudentsMainInfo> {
                     ),
                     onChanged: (value) {
                       final parsed = int.tryParse(value) ?? 0;
-
                       setState(() {
                         discountAmount = parsed > widget.abonementPrice
                             ? widget.abonementPrice
@@ -140,41 +140,36 @@ class _StudentsMainInfoState extends State<StudentsMainInfo> {
             ),
 
             const Divider(height: 30),
-
             const Text("Status", style: TextStyle(fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
 
-            DropdownButtonFormField<StudentStatus>(
-              value: status,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                isDense: true,
-              ),
+            DropdownButtonFormField<String>(
+              value: widget.statusDisplay.toLowerCase(),
               items: const [
                 DropdownMenuItem(
-                  value: StudentStatus.trial,
+                  value: "trial",
                   child: Text("🟡 Probniy dars"),
                 ),
                 DropdownMenuItem(
-                  value: StudentStatus.active,
+                  value: "active",
                   child: Text("🟢 Faol o'quvchi"),
                 ),
                 DropdownMenuItem(
-                  value: StudentStatus.inactive,
+                  value: "inactive",
                   child: Text("🔴 Faol emas"),
                 ),
               ],
               onChanged: (v) async {
                 if (v == null) return;
 
-                if (v == StudentStatus.inactive) {
+                if (v == "inactive") {
                   final result = await _showDeactivateDialog();
                   if (result == true) {
-                    setState(() => status = v);
+                    setState(() => statusDisplay = v);
                   }
                 } else {
                   setState(() {
-                    status = v;
+                    statusDisplay = v;
                     deactivateReason = null;
                     deactivateDescription = null;
                   });
@@ -183,11 +178,9 @@ class _StudentsMainInfoState extends State<StudentsMainInfo> {
             ),
 
             const SizedBox(height: 10),
-
             _statusBadge(),
 
-            if (status == StudentStatus.inactive &&
-                deactivateReason != null) ...[
+            if (statusDisplay == "inactive" && deactivateReason != null) ...[
               const SizedBox(height: 8),
               Text(
                 "Reason: $deactivateReason",
@@ -226,17 +219,13 @@ class _StudentsMainInfoState extends State<StudentsMainInfo> {
             children: [
               TextField(
                 controller: reasonController,
-                decoration: const InputDecoration(
-                  labelText: "Reason",
-                ),
+                decoration: const InputDecoration(labelText: "Reason"),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: descriptionController,
                 maxLines: 3,
-                decoration: const InputDecoration(
-                  labelText: "Description",
-                ),
+                decoration: const InputDecoration(labelText: "Description"),
               ),
             ],
           ),
@@ -266,19 +255,22 @@ class _StudentsMainInfoState extends State<StudentsMainInfo> {
     late Color color;
     late String text;
 
-    switch (status) {
-      case StudentStatus.trial:
+    switch (statusDisplay) {
+      case "trial":
         color = Colors.orange;
         text = "Probniy dars";
         break;
-      case StudentStatus.active:
+      case "active":
         color = Colors.green;
         text = "Faol o'quvchi";
         break;
-      case StudentStatus.inactive:
+      case "inactive":
         color = Colors.red;
         text = "Faol emas";
         break;
+      default:
+        color = Colors.grey;
+        text = statusDisplay;
     }
 
     return Container(

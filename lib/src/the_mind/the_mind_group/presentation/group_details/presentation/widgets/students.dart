@@ -59,12 +59,12 @@ class _StudentsState extends State<Students> {
                         children: [
                           Expanded(
                             child: InkWell(
-                              onTap: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => StudentDetailsPage(),
-                                ),
-                              ),
+                              // onTap: () => Navigator.push(
+                              //   context,
+                              //   MaterialPageRoute(
+                              //     builder: (_) => StudentDetailsPage(student:widget.students,),
+                              //   ),
+                              // ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [

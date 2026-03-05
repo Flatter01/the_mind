@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:srm/src/core/colors/app_colors.dart';
+import 'package:srm/src/the_mind/the_mind_students/presentation/student/cubit/student_cubit.dart';
+import 'package:srm/src/the_mind/the_mind_students/presentation/student/cubit/student_state.dart';
 
 class AddStudentForm extends StatefulWidget {
   final List<String> courses;
@@ -27,6 +30,7 @@ class _AddStudentFormState extends State<AddStudentForm> {
   final phone2Ctrl = TextEditingController();
   final birthdayCtrl = TextEditingController();
   final districtCtrl = TextEditingController();
+  final groupIdCtrl = TextEditingController();
 
   // dropdowns
   String? selectedGender;
@@ -53,6 +57,7 @@ class _AddStudentFormState extends State<AddStudentForm> {
     phone2Ctrl.dispose();
     birthdayCtrl.dispose();
     districtCtrl.dispose();
+    groupIdCtrl.dispose();
     super.dispose();
   }
 
@@ -62,69 +67,100 @@ class _AddStudentFormState extends State<AddStudentForm> {
       width: widget.isMobile ? double.infinity : 650,
       padding: EdgeInsets.all(widget.isMobile ? 18 : 28),
       color: AppColors.bgColor,
-      child: Form(
-        key: _formKey,
-        autovalidateMode: AutovalidateMode.onUserInteraction,
-        child: SingleChildScrollView(
-          padding: EdgeInsets.all(10),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // ---- TITLE ----
-              Text(
-                "Yangi o‘quvchi qo‘shish",
-                style: TextStyle(
-                  fontSize: widget.isMobile ? 22 : 24,
-                  fontWeight: FontWeight.bold,
+      child: BlocListener<StudentCubit, StudentState>(
+        listener: (context, state) {
+          if (state is StudentError) {
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text(state.message)));
+          }
+
+          if (state is StudentLoaded) {
+            Navigator.pop(context);
+          }
+        },
+        child: Form(
+          key: _formKey,
+          autovalidateMode: AutovalidateMode.onUserInteraction,
+          child: SingleChildScrollView(
+            padding: EdgeInsets.all(10),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // ---- TITLE ----
+                Text(
+                  "Yangi o‘quvchi qo‘shish",
+                  style: TextStyle(
+                    fontSize: widget.isMobile ? 22 : 24,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 24),
+                const SizedBox(height: 24),
 
-              // ---- RESPONSIVE FORM ----
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final isMobile = constraints.maxWidth < 580;
+                // ---- RESPONSIVE FORM ----
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isMobile = constraints.maxWidth < 580;
 
-                  if (isMobile) {
-                    return Column(children: _buildInputsMobile());
-                  }
+                    if (isMobile) {
+                      return Column(children: _buildInputsMobile());
+                    }
 
-                  final columnWidth = (constraints.maxWidth - 20) / 2;
-                  return Wrap(
-                    spacing: 20,
-                    runSpacing: 16,
-                    children: [
-                      SizedBox(
-                        width: columnWidth,
-                        child: Column(children: _leftSideInputs()),
-                      ),
-                      SizedBox(
-                        width: columnWidth,
-                        child: Column(children: _rightSideInputs()),
-                      ),
-                    ],
-                  );
-                },
-              ),
+                    final columnWidth = (constraints.maxWidth - 20) / 2;
+                    return Wrap(
+                      spacing: 20,
+                      runSpacing: 16,
+                      children: [
+                        SizedBox(
+                          width: columnWidth,
+                          child: Column(children: _leftSideInputs()),
+                        ),
+                        SizedBox(
+                          width: columnWidth,
+                          child: Column(children: _rightSideInputs()),
+                        ),
+                      ],
+                    );
+                  },
+                ),
 
-              const SizedBox(height: 30),
+                const SizedBox(height: 30),
 
-              // ---- BUTTONS ----
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text("Bekor qilish"),
-                  ),
-                  const SizedBox(width: 12),
-                  ElevatedButton(
-                    onPressed: _submit,
-                    child: const Text("Saqlash"),
-                  ),
-                ],
-              ),
-            ],
+                // ---- BUTTONS ----
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text("Bekor qilish"),
+                    ),
+                    const SizedBox(width: 12),
+                    ElevatedButton(
+                      onPressed: () {
+                        if (_formKey.currentState!.validate()) {
+                          context.read<StudentCubit>().addStudent(
+                            firstName: nameCtrl.text,
+                            lastName: surnameCtrl.text,
+                            phone: phoneCtrl.text,
+                            parentPhone: null,
+                            status: "active",
+                            birthDate: "2000-01-01",
+                            gender: "male",
+                            district: 1,
+                            source: "telegram",
+                            notes: "",
+                            groupId: null,
+                          );
+
+                          Navigator.pop(context);
+                        }
+                      },
+                      child: const Text("Saqlash"),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -135,11 +171,7 @@ class _AddStudentFormState extends State<AddStudentForm> {
 
   List<Widget> _buildInputsMobile() {
     return [
-      _input(
-        controller: nameCtrl,
-        label: "Ism",
-        icon: Icons.person,
-      ),
+      _input(controller: nameCtrl, label: "Ism", icon: Icons.person),
       const SizedBox(height: 10),
       _input(
         controller: surnameCtrl,
@@ -205,14 +237,20 @@ class _AddStudentFormState extends State<AddStudentForm> {
         widget.groups,
         Icons.group,
         (v) => setState(() => selectedGroup = v),
+        isRequired: false,
       ),
       const SizedBox(height: 10),
 
       _input(
-        controller: districtCtrl,
-        label: "Tuman",
-        icon: Icons.location_on,
+        controller: groupIdCtrl,
+        label: "Group ID (UUID)",
+        icon: Icons.tag,
+        keyboardType: TextInputType.text,
+        isRequired: false,
       ),
+      const SizedBox(height: 10),
+
+      _input(controller: districtCtrl, label: "Tuman", icon: Icons.location_on),
     ];
   }
 
@@ -220,11 +258,7 @@ class _AddStudentFormState extends State<AddStudentForm> {
 
   List<Widget> _leftSideInputs() {
     return [
-      _input(
-        controller: nameCtrl,
-        label: "Ism",
-        icon: Icons.person,
-      ),
+      _input(controller: nameCtrl, label: "Ism", icon: Icons.person),
       const SizedBox(height: 14),
       _input(
         controller: phoneCtrl,
@@ -283,13 +317,18 @@ class _AddStudentFormState extends State<AddStudentForm> {
         widget.groups,
         Icons.group,
         (v) => setState(() => selectedGroup = v),
+        isRequired: false,
       ),
       const SizedBox(height: 14),
       _input(
-        controller: districtCtrl,
-        label: "Tuman",
-        icon: Icons.location_on,
+        controller: groupIdCtrl,
+        label: "Group ID (UUID)",
+        icon: Icons.tag,
+        keyboardType: TextInputType.text,
+        isRequired: false,
       ),
+      const SizedBox(height: 14),
+      _input(controller: districtCtrl, label: "Tuman", icon: Icons.location_on),
     ];
   }
 
@@ -347,7 +386,7 @@ class _AddStudentFormState extends State<AddStudentForm> {
     return FormField<String>(
       validator: (v) {
         if (!isRequired) return null;
-        if (value == null || value!.isEmpty) {
+        if (value?.isEmpty ?? true) {
           return "$label tanlang";
         }
         return null;
@@ -368,7 +407,10 @@ class _AddStudentFormState extends State<AddStudentForm> {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: AppColors.cardColor, width: 1.4),
+            borderSide: const BorderSide(
+              color: AppColors.cardColor,
+              width: 1.4,
+            ),
           ),
           errorText: state.errorText,
         ),
@@ -378,12 +420,7 @@ class _AddStudentFormState extends State<AddStudentForm> {
             value: value,
             hint: Text(label),
             items: items
-                .map(
-                  (e) => DropdownMenuItem(
-                    value: e,
-                    child: Text(e),
-                  ),
-                )
+                .map((e) => DropdownMenuItem(value: e, child: Text(e)))
                 .toList(),
             onChanged: (v) {
               onChanged(v);
@@ -395,21 +432,30 @@ class _AddStudentFormState extends State<AddStudentForm> {
     );
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
-    Navigator.pop(context, {
-      "name": nameCtrl.text.trim(),
-      "surname": surnameCtrl.text.trim(),
-      "birthday": birthdayCtrl.text.trim(),
-      "phone": phoneCtrl.text.trim(),
-      "phone2": phone2Ctrl.text.trim(),
-      "district": districtCtrl.text.trim(),
-      "gender": selectedGender,
-      "source": selectedSource,
-      "course": selectedCourse,
-      "group": selectedGroup,
-    });
+    final parentPhone = phone2Ctrl.text.trim();
+    final groupId = groupIdCtrl.text.trim();
+
+    await context.read<StudentCubit>().addStudent(
+      id: 0,
+      firstName: nameCtrl.text.trim(),
+      lastName: surnameCtrl.text.trim(),
+      phone: phoneCtrl.text.trim(),
+      parentPhone: parentPhone.isEmpty ? null : parentPhone,
+      status: "active",
+      birthDate: birthdayCtrl.text.trim(),
+      gender: selectedGender == "Erkak" ? "male" : "female",
+      district: int.tryParse(districtCtrl.text.trim()) ?? 0,
+      source: selectedSource?.toLowerCase() ?? "instagram",
+      notes: "",
+      groupId: groupId.isEmpty ? null : groupId,
+    );
+
+    if (!mounted) return;
+    Navigator.pop(context);
+    print("Student qo'shildi");
   }
 
   VoidCallback _pickDate(TextEditingController controller) {

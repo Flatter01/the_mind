@@ -6,7 +6,7 @@ import 'package:srm/src/core/widgets/cell.dart';
 import 'package:srm/src/core/widgets/flexible_data_table.dart';
 import 'package:srm/src/the_mind/home/presentation/widgets/goal_progress_card.dart';
 import 'package:srm/src/the_mind/home/presentation/widgets/goal_progress_card_details.dart';
-import 'package:srm/src/the_mind/the_mind_students/data/model/students/students_models.dart';
+import 'package:srm/src/the_mind/the_mind_students/data/model/students/build_students_table_ltem.dart';
 import 'package:srm/src/the_mind/the_mind_students/presentation/student/student_details.dart';
 
 class HomePage extends StatefulWidget {
@@ -172,10 +172,10 @@ class _HomePageState extends State<HomePage> {
               6: FixedColumnWidth(50),
             },
             onRowTap: (s, i) {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const StudentDetailsPage()),
-              );
+              // Navigator.push(
+              //   context,
+              //   MaterialPageRoute(builder: (_) => const StudentDetailsPage()),
+              // );
             },
             rowBuilder: (s, i) => [
               Cell(s.name, bold: true),
@@ -216,10 +216,10 @@ class _HomePageState extends State<HomePage> {
               6: FixedColumnWidth(50),
             },
             onRowTap: (s, i) {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const StudentDetailsPage()),
-              );
+              // Navigator.push(
+              //   context,
+              //   MaterialPageRoute(builder: (_) => const StudentDetailsPage()),
+              // );
             },
             rowBuilder: (s, i) => [
               Cell(s.name, bold: true),
@@ -260,10 +260,10 @@ class _HomePageState extends State<HomePage> {
               7: FixedColumnWidth(50),
             },
             onRowTap: (s, i) {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const StudentDetailsPage()),
-              );
+              // Navigator.push(
+              //   context,
+              //   MaterialPageRoute(builder: (_) => const StudentDetailsPage()),
+              // );
             },
             rowBuilder: (s, i) => [
               Cell(s.name, bold: true),

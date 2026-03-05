@@ -1,13 +1,22 @@
-// import 'package:srm/src/the_mind/the_mind_students/data/model/students/student_model.dart';
 
-// abstract class StudentsState {}
-// class StudentsInitial extends StudentsState {}
-// class StudentsLoading extends StudentsState {}
-// class StudentsLoaded extends StudentsState {
-//   final List<StudentModel> students;
-//   StudentsLoaded(this.students);
-// }
-// class StudentsError extends StudentsState {
-//   final String message;
-//   StudentsError(this.message);
-// }
+import 'package:srm/src/the_mind/the_mind_students/data/model/students/student_model.dart';
+
+abstract class StudentState {}
+
+class StudentSuccess extends StudentState {}
+
+class StudentInitial extends StudentState {}
+
+class StudentLoading extends StudentState {}
+
+class StudentLoaded extends StudentState {
+  final List<StudentModel> students;
+
+  StudentLoaded({required this.students});
+}
+
+class StudentError extends StudentState {
+  final String message;
+
+  StudentError({required this.message});
+}

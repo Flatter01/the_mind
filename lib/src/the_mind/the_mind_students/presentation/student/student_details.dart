@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:srm/src/the_mind/the_mind_students/data/model/students/student_model.dart';
 import 'package:srm/src/the_mind/the_mind_students/presentation/student/widgets/students_details/student_history.dart';
 import 'package:srm/src/the_mind/the_mind_students/presentation/student/widgets/students_details/students_exams.dart';
 import 'package:srm/src/the_mind/the_mind_students/presentation/student/widgets/students_details/students_main_info.dart';
 
 class StudentDetailsPage extends StatefulWidget {
-  const StudentDetailsPage({super.key});
+  final StudentModel student;
+
+  const StudentDetailsPage({super.key, required this.student});
 
   @override
   State<StudentDetailsPage> createState() => _StudentDetailsPageState();
@@ -13,20 +16,6 @@ class StudentDetailsPage extends StatefulWidget {
 enum StudentStatus { trial, active, inactive }
 
 class _StudentDetailsPageState extends State<StudentDetailsPage> {
-  // ===== MAIN (FIXED) DATA =====
-  final String fullName = "Roger Curtis";
-  final String gender = "Male";
-  final String birthDate = "12-03-2001";
-  final String phone = "+998 90 123 45 67";
-  final String balance = "150,000 UZS";
-  final String currentGroup = "English A2";
-
-  // ===== STATUS =====
-  StudentStatus status = StudentStatus.trial;
-  String? deactivateReason;
-  String? deactivateDescription;
-
-  // ===== ABONEMENT =====
   String abonementName = "Individual";
   int abonementPrice = 2200000;
   int discountPercent = 0;
@@ -109,16 +98,17 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
                 SizedBox(
                   width: 360,
                   child: StudentsMainInfo(
-                    fullName: fullName,
-                    gender: gender,
-                    birthDate: birthDate,
-                    phone: phone,
-                    balance: balance,
-                    currentGroup: currentGroup,
+                    lastName: widget.student.lastName ?? "",
+                    firstName: widget.student.firstName ?? "",
+                    gender: widget.student.gender ?? "",
+                    birthDate:widget.student.birthDate ?? "",
+                    phone:widget.student.phone ?? "",
+                    balance:widget.student.balance,
+                    currentGroup:widget.student.groupName ?? "",
                     abonementName: abonementName,
                     abonementPrice: abonementPrice,
                     discountAmount: discountPercent,
-                    status: status,
+                    statusDisplay: widget.student.statusDisplay,
                   ),
                 ),
                 const SizedBox(width: 20),

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:srm/src/the_mind/the_mind_students/data/model/students/students_models.dart';
+import 'package:srm/src/the_mind/the_mind_students/data/model/students/build_students_table_ltem.dart';
 import 'package:srm/src/the_mind/the_mind_students/presentation/student/widgets/build_students_table.dart';
 
 class AddPaymentDialogResponsive extends StatefulWidget {
