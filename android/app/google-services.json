@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "716625425836",
+    "project_id": "themindcrm-68453",
+    "storage_bucket": "themindcrm-68453.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:716625425836:android:93ee7ec1d7806a6df83609",
+        "android_client_info": {
+          "package_name": "com.example.srm"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDiejmvCTqnitJItGx3xqL-D1lJEVtveQ4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
