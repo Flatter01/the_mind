@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:srm/src/core/widgets/analytica/build_analytics.dart';
+import 'package:srm/src/the_mind/home/presentation/widgets/build_analytics.dart';
 
 class BuildAnalyticsSalary extends StatelessWidget {
   final VoidCallback? onTap;
@@ -29,7 +29,6 @@ class BuildAnalyticsSalary extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: item.color,
                   borderRadius: BorderRadius.circular(18),
                   boxShadow: [
                     BoxShadow(
@@ -48,7 +47,6 @@ class BuildAnalyticsSalary extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w500,
-                        color: item.textColor,
                       ),
                     ),
                     const SizedBox(height: 5),
@@ -58,7 +56,6 @@ class BuildAnalyticsSalary extends StatelessWidget {
                         fontSize: 24,
                         fontWeight: FontWeight.w700,
                         letterSpacing: 0.5,
-                        color: item.textColor,
                       ),
                     ),
                   ],

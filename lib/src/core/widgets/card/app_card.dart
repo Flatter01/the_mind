@@ -8,6 +8,7 @@ class AppCard extends StatelessWidget {
   final Color? color;
   final BorderRadiusGeometry? borderRadius;
   final List<BoxShadow>? boxShadow;
+  final double? width;
 
   const AppCard({
     super.key,
@@ -17,23 +18,22 @@ class AppCard extends StatelessWidget {
     this.color,
     this.borderRadius,
     this.boxShadow,
+    this.width,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
+      width: width,
       margin: margin ?? EdgeInsets.zero,
       padding: padding ?? const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: color ?? AppColors.cardColor,
         borderRadius: borderRadius ?? BorderRadius.circular(18),
-        boxShadow: boxShadow ??
-            const [
-              BoxShadow(
-                blurRadius: 18,
-                color: Color.fromARGB(20, 0, 0, 0),
-              ),
-            ],
+        border: Border.all(
+          color: Colors.grey.withOpacity(0.40),
+        ),
+        boxShadow: boxShadow,
       ),
       child: child,
     );

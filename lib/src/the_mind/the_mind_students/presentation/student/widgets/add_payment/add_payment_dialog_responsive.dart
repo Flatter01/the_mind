@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:srm/src/the_mind/the_mind_students/data/model/students/build_students_table_ltem.dart';
-import 'package:srm/src/the_mind/the_mind_students/presentation/student/widgets/build_students_table.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:srm/src/the_mind/the_mind_students/data/model/students/student_model.dart';
+import 'package:srm/src/the_mind/the_mind_students/presentation/student/cubit/payment/payment_cubit.dart';
+import 'package:srm/src/the_mind/the_mind_students/presentation/student/cubit/payment/payment_stae.dart';
 
 class AddPaymentDialogResponsive extends StatefulWidget {
-  final List<BuildStudentsTableItem> students;
+  final List<StudentModel> students;
 
-  const AddPaymentDialogResponsive({
-    super.key,
-    required this.students,
-  });
+  const AddPaymentDialogResponsive({super.key, required this.students});
 
   @override
   State<AddPaymentDialogResponsive> createState() =>
@@ -17,9 +16,14 @@ class AddPaymentDialogResponsive extends StatefulWidget {
 
 class _AddPaymentDialogResponsiveState
     extends State<AddPaymentDialogResponsive> {
+  void _showError(BuildContext context, String msg) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  }
+
   String search = "";
-  BuildStudentsTableItem? selectedStudent;
-  String? selectedPaymentMethod;
+  StudentModel? selectedStudent;
+  String? selectedPaymentMethod = "cash";
 
   final amountController = TextEditingController();
   DateTime? selectedDate;
@@ -27,8 +31,8 @@ class _AddPaymentDialogResponsiveState
   @override
   Widget build(BuildContext context) {
     final filtered = widget.students.where((s) {
-      final full =
-          "${s.name} ${s.phone} ${s.group}".toLowerCase();
+      final full = "${s.lastName}${s.firstName} ${s.phone} ${s.groupName}"
+          .toLowerCase();
       return full.contains(search.toLowerCase());
     }).toList();
 
@@ -47,7 +51,7 @@ class _AddPaymentDialogResponsiveState
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 20),
-        
+
               // Поисковик
               TextField(
                 decoration: InputDecoration(
@@ -59,9 +63,9 @@ class _AddPaymentDialogResponsiveState
                 ),
                 onChanged: (v) => setState(() => search = v),
               ),
-        
+
               const SizedBox(height: 16),
-        
+
               // Список учеников
               Container(
                 height: 150,
@@ -73,19 +77,21 @@ class _AddPaymentDialogResponsiveState
                   itemCount: filtered.length,
                   itemBuilder: (_, i) {
                     final s = filtered[i];
-                    return RadioListTile<BuildStudentsTableItem>(
+                    return RadioListTile<StudentModel>(
                       value: s,
                       groupValue: selectedStudent,
                       onChanged: (v) => setState(() => selectedStudent = v),
-                      title: Text("${s.name} — ${s.group}"),
-                      subtitle: Text(s.phone),
+                      title: Text(
+                        "${s.lastName}${s.firstName} — ${s.groupName}",
+                      ),
+                      subtitle: Text(s.phone.toString()),
                     );
                   },
                 ),
               ),
-        
+
               const SizedBox(height: 20),
-        
+
               // Метод оплаты
               DropdownButtonFormField<String>(
                 decoration: InputDecoration(
@@ -102,9 +108,9 @@ class _AddPaymentDialogResponsiveState
                 ],
                 onChanged: (v) => setState(() => selectedPaymentMethod = v),
               ),
-        
+
               const SizedBox(height: 20),
-        
+
               // Сумма
               TextField(
                 controller: amountController,
@@ -116,9 +122,9 @@ class _AddPaymentDialogResponsiveState
                   ),
                 ),
               ),
-        
+
               const SizedBox(height: 20),
-        
+
               // Дата платежа
               InkWell(
                 onTap: () async {
@@ -150,14 +156,14 @@ class _AddPaymentDialogResponsiveState
                         selectedDate == null
                             ? "To‘lov sanasi"
                             : "${selectedDate!.year}-${selectedDate!.month}-${selectedDate!.day}",
-                      )
+                      ),
                     ],
                   ),
                 ),
               ),
-        
+
               const SizedBox(height: 24),
-        
+
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
@@ -167,23 +173,57 @@ class _AddPaymentDialogResponsiveState
                   ),
                   const SizedBox(width: 12),
                   ElevatedButton(
-                    onPressed: () {
-                      if (selectedStudent == null ||
-                          selectedPaymentMethod == null ||
-                          amountController.text.isEmpty ||
-                          selectedDate == null) return;
-        
-                      Navigator.pop(context, {
-                        "student": selectedStudent,
-                        "method": selectedPaymentMethod,
-                        "amount": amountController.text,
-                        "date": selectedDate,
-                      });
+                    onPressed: () async {
+                      if (selectedStudent == null) {
+                        _showError(context, "Talabani tanlang");
+                        return;
+                      }
+                      if (selectedStudent!.groupId == null) {
+                        _showError(context, "Bu talabada guruh yo'q");
+                        return;
+                      }
+                      if (selectedPaymentMethod == null) {
+                        _showError(context, "To'lov turini tanlang");
+                        return;
+                      }
+                      if (amountController.text.isEmpty) {
+                        _showError(context, "Summani kiriting");
+                        return;
+                      }
+                      if (selectedDate == null) {
+                        _showError(context, "Sanani tanlang");
+                        return;
+                      }
+
+                      final cubit = context.read<PaymentCubit>();
+                      final d = selectedDate!;
+                      final paymentMonth =
+                          "${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}";
+
+                      await cubit.createPayment(
+                        student: selectedStudent!.id,
+                        group: selectedStudent!.groupId!,
+                        administrator: "1",
+                        amount: amountController.text,
+                        payWith: selectedPaymentMethod!,
+                        paymentMonth: paymentMonth,
+                        checkGiven: true,
+                      );
+
+                      if (!mounted) return;
+                      final state = cubit.state;
+                      if (state is PaymentError) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(state.message)),
+                        );
+                        return;
+                      }
+                      Navigator.pop(context);
                     },
                     child: const Text("Saqlash"),
                   ),
                 ],
-              )
+              ),
             ],
           ),
         ),

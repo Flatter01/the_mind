@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:srm/src/core/widgets/card/app_card.dart';
 import 'package:srm/src/the_mind/the_mind_group/presentation/group_details/presentation/create_group_page.dart';
+import 'package:srm/src/the_mind/the_mind_students/data/datasources/student_api_payment_servise.dart';
 import 'package:srm/src/the_mind/the_mind_students/data/model/students/build_students_table_ltem.dart';
+import 'package:srm/src/the_mind/the_mind_students/presentation/student/cubit/payment/payment_cubit.dart';
+import 'package:srm/src/the_mind/the_mind_students/presentation/student/cubit/student/student_cubit.dart';
+import 'package:srm/src/the_mind/the_mind_students/presentation/student/cubit/student/student_state.dart';
 import 'package:srm/src/the_mind/the_mind_students/presentation/student/widgets/add_payment/add_payment_dialog_responsive.dart';
 import 'package:srm/src/the_mind/the_mind_students/presentation/student/widgets/add_student/add_student_dialog_responsive.dart';
 
@@ -15,6 +20,8 @@ class BuildFilters extends StatefulWidget {
   final List<String> teachers;
   final List<String> courses;
   final List<BuildStudentsTableItem>? students;
+  final ValueChanged<String?>? onTeacherChanged;
+  final ValueChanged<String?>? onStatusChanged;
 
   const BuildFilters({
     super.key,
@@ -26,6 +33,8 @@ class BuildFilters extends StatefulWidget {
     required this.teachers,
     required this.courses,
     this.students,
+    this.onTeacherChanged,
+    this.onStatusChanged,
   });
 
   @override
@@ -83,7 +92,11 @@ class _BuildFiltersState extends State<BuildFilters> {
                 value: selectedTeacher,
                 items: {for (final t in widget.teachers) t: t},
                 icon: Icons.person,
-                onChanged: (v) => setState(() => selectedTeacher = v),
+                onChanged: (v) {
+                  setState(() => selectedTeacher = v);
+                  if (widget.onTeacherChanged != null)
+                    widget.onTeacherChanged!(v);
+                },
               ),
 
               _dropdown(
@@ -139,7 +152,7 @@ class _BuildFiltersState extends State<BuildFilters> {
                   onPressed: () async {
                     final result = await showDialog(
                       context: context,
-                      barrierDismissible: false,
+                      // barrierDismissible: false,
                       builder: (_) => AddStudentDialogResponsive(
                         courses: widget.courses,
                         groups: const [
@@ -177,11 +190,33 @@ class _BuildFiltersState extends State<BuildFilters> {
                     style: TextStyle(color: Colors.white),
                   ),
                   onPressed: () async {
+                    final paymentCubit = context.read<PaymentCubit>();
                     final result = await showDialog(
                       context: context,
                       barrierDismissible: false,
-                      builder: (_) => AddPaymentDialogResponsive(
-                        students: widget.students ?? [],
+                      builder: (_) => BlocProvider.value(
+                        value: paymentCubit,
+                        child: BlocBuilder<StudentCubit, StudentState>(
+                          builder: (context, state) {
+                            if (state is StudentLoading) {
+                              return const Center(
+                                child: CircularProgressIndicator(),
+                              );
+                            }
+
+                            if (state is StudentError) {
+                              return Center(child: Text(state.message));
+                            }
+
+                            if (state is StudentLoaded) {
+                              return AddPaymentDialogResponsive(
+                                students: state.students,
+                              );
+                            }
+
+                            return const SizedBox();
+                          },
+                        ),
                       ),
                     );
 

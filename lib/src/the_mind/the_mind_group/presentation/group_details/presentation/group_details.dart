@@ -1,12 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:srm/src/core/colors/app_colors.dart';
-import 'package:srm/src/core/widgets/card/app_card.dart';
-import 'package:srm/src/the_mind/the_mind_group/data/models/group_model.dart';
-import 'package:srm/src/the_mind/the_mind_group/presentation/group_details/data/model/lesson_model.dart';
 import 'package:srm/src/the_mind/the_mind_group/presentation/group_details/data/model/student_model.dart';
 import 'package:srm/src/the_mind/the_mind_group/presentation/group_details/data/model/teacher_model.dart';
-import 'package:srm/src/the_mind/the_mind_group/presentation/group_details/presentation/widgets/lessons.dart';
-import 'package:srm/src/the_mind/the_mind_group/presentation/group_details/presentation/widgets/students.dart';
 
 class GroupDetails extends StatefulWidget {
   const GroupDetails({super.key});
@@ -16,256 +10,66 @@ class GroupDetails extends StatefulWidget {
 }
 
 class _GroupDetailsState extends State<GroupDetails> {
-  final int pricePerStudent = 50000;
-  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  StudentModel? selectedStudent;
-  final List<StudentModel> allCrmStudents = [
-    StudentModel(
-      name: 'Ali',
-      phone: '+998 90 555 11 11',
-      tariff: 'Standart',
-      balance: 120000,
-      tariffPrice: 800000,
-      discount: 0,
-      lesson: 51,
-      bal: 200,
-      arrivalDate: DateTime(2026, 2, 20),
-      activationDate: DateTime(2026, 2, 21),
-    ),
-    StudentModel(
-      name: 'Aziz',
-      phone: '+998 93 444 55 76',
-      tariff: 'Premium',
-      balance: 300000,
-      tariffPrice: 800000,
-      discount: 0,
-      lesson: 51,
-      bal: 200,
-      arrivalDate: DateTime(2026, 2, 20),
-      activationDate: DateTime(2026, 2, 21),
-    ),
-    StudentModel(
-      name: 'Begzod',
-      phone: '+998 99 777 88 09',
-      tariff: 'Basic',
-      balance: 0,
-      tariffPrice: 800000,
-      discount: 0,
-      lesson: 51,
-      bal: 200,
-      arrivalDate: DateTime(2026, 2, 20),
-      activationDate: DateTime(2026, 2, 21),
-    ),
-  ];
-  final List<StudentModel> groupStudents = [
-    StudentModel(
-      name: 'Azizbek',
-      phone: '+998 90 111 22 33',
-      tariff: 'Standart',
-      balance: 120000,
-      tariffPrice: 800000,
-      discount: 0,
-      lesson: 51,
-      bal: 200,
-      arrivalDate: DateTime(2026, 2, 20),
-      activationDate: DateTime(2026, 2, 21),
-    ),
-    StudentModel(
-      name: 'Jasmina',
-      phone: '+998 93 444 55 66',
-      tariff: 'Premium',
-      balance: 300000,
-      tariffPrice: 800000,
-      discount: 0,
-      lesson: 51,
-      bal: 200,
-      arrivalDate: DateTime(2026, 2, 20),
-      activationDate: DateTime(2026, 2, 21),
-    ),
-    StudentModel(
-      name: 'Sardor',
-      phone: '+998 99 777 88 99',
-      tariff: 'Basic',
-      balance: 0,
-      tariffPrice: 800000,
-      discount: 0,
-      lesson: 51,
-      bal: 200,
-      arrivalDate: DateTime(2026, 2, 20),
-      activationDate: DateTime(2026, 2, 21),
-    ),
-  ];
+  final int pricePerStudent = 450;
 
-  final List<LessonModel> lessons = [
-    LessonModel(date: '12.09.2025', visits: []),
-    LessonModel(date: '14.09.2025', visits: []),
-    LessonModel(date: '16.09.2025', visits: []),
+  final List<StudentModel> groupStudents = [
+    StudentModel(name: 'Артем Никитин', phone: '+998 90 111 22 33', tariff: 'Standart', balance: 2400, tariffPrice: 800000, discount: 0, lesson: 51, bal: 4, arrivalDate: DateTime(2026, 2, 20), activationDate: DateTime(2026, 2, 21)),
+    StudentModel(name: 'Марина Соколова', phone: '+998 93 444 55 66', tariff: 'Premium', balance: -850, tariffPrice: 800000, discount: 0, lesson: 51, bal: 0, arrivalDate: DateTime(2026, 2, 20), activationDate: DateTime(2026, 2, 21)),
+    StudentModel(name: 'Дмитрий Волков', phone: '+998 99 777 88 99', tariff: 'Basic', balance: 1200, tariffPrice: 800000, discount: 0, lesson: 51, bal: 3, arrivalDate: DateTime(2026, 2, 20), activationDate: DateTime(2026, 2, 21)),
   ];
 
   final List<TeacherModel> teachers = [
-    TeacherModel(name: 'Aliyev Bekzod', balance: 1250000),
-    TeacherModel(name: 'Karimova Dilnoza', balance: 820000),
-    TeacherModel(name: 'Usmonov Jamshid', balance: 540000),
+    TeacherModel(name: 'Александр Громов', balance: 24800),
+    TeacherModel(name: 'Елена Петрова', balance: 18500),
   ];
 
   late TeacherModel currentTeacher;
+
+  final Map<String, bool> _attendance = {};
+  final Map<String, int?> _grades = {};
+  final Map<String, TextEditingController> _hwControllers = {};
+
+  final String _lessonDate = '12.10.2023';
+  final int _lessonNumber = 14;
+  final int _totalLessons = 24;
 
   @override
   void initState() {
     super.initState();
     currentTeacher = teachers.first;
+    for (final s in groupStudents) {
+      _attendance[s.name] = s.bal > 0; // был если есть оценка
+      _grades[s.name] = s.bal > 0 ? s.bal : null;
+      _hwControllers[s.name] = TextEditingController(text: '');
+    }
   }
 
-  int get dailyIncome =>
-      groupStudents.where((s) => s.isPresent && !s.isFrozen).length *
-      pricePerStudent;
-
-  void _changeTeacher(TeacherModel teacher) {
-    setState(() {
-      currentTeacher = teacher;
-    });
+  @override
+  void dispose() {
+    for (final c in _hwControllers.values) c.dispose();
+    super.dispose();
   }
 
-  Widget _studentDrawer() {
-    if (selectedStudent == null) return const SizedBox();
-
-    final s = selectedStudent!;
-
-    return Drawer(
-      backgroundColor: AppColors.bgColor,
-      width: 360,
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            Expanded(
-              child: ListView(
-                children: [
-                  Text(
-                    s.name,
-                    style: const TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  _infoRow('Телефон', s.phone),
-                  _infoRow('Тариф', s.tariff),
-                  _infoRow('Баланс', '${s.balance} сум'),
-                  _infoRow('Статус', s.isFrozen ? 'Заморожен' : 'Активен'),
-                  _infoRow('Тариф цена', "${s.tariffPrice}"),
-                  _infoRow('Скидки', "${s.discount}"),
-                  _infoRow('Урок', "${s.lesson}"),
-                  _infoRow('Бал', "${s.bal}"),
-                  _infoRow('Дата прибытия', "${s.arrivalDate}"),
-                  _infoRow('Дата активации', "${s.activationDate}"),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.redAccent,
-                minimumSize: const Size(double.infinity, 48),
-              ),
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              child: const Text(
-                'Закрыть',
-                style: TextStyle(color: Colors.white),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _infoRow(String title, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title, style: TextStyle(color: Colors.grey, fontSize: 13)),
-          const SizedBox(height: 6),
-          Text(
-            value,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-          ),
-        ],
-      ),
-    );
-  }
+  int get _presentCount => groupStudents.where((s) => _attendance[s.name] == true).length;
+  int get _dailyIncome => _presentCount * pricePerStudent;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F6FA),
-      key: _scaffoldKey,
-      endDrawer: _studentDrawer(),
-
+      backgroundColor: const Color(0xFFF2F5F7),
       body: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1200),
+          constraints: const BoxConstraints(maxWidth: 1100),
           child: Padding(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.all(28),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _header(),
-                const SizedBox(height: 24),
-                _stats(),
-                const SizedBox(height: 24),
-                Expanded(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        flex: 2,
-                        child: Lessons(
-                          students: groupStudents,
-                          lessonDates: [
-                            '01',
-                            '03',
-                            '06',
-                            '08',
-                            '10',
-                            '13',
-                            '14',
-                            '15',
-                            '16',
-                            '18',
-                            '19',
-                            '10',
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 24),
-                      Expanded(
-                        flex: 1,
-                        child: Students(
-                          students: groupStudents,
-                          allStudents: allCrmStudents,
-                          onSelect: (student) {
-                            setState(() {
-                              selectedStudent = student;
-                            });
-                            _scaffoldKey.currentState!.openEndDrawer();
-                          },
-                          onAddStudent: (student) {
-                            setState(() {
-                              groupStudents.add(student);
-                            });
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                _buildHeader(),
+                const SizedBox(height: 20),
+                _buildInfoAndFinance(),
+                const SizedBox(height: 20),
+                Expanded(child: _buildAttendanceTable()),
               ],
             ),
           ),
@@ -274,75 +78,393 @@ class _GroupDetailsState extends State<GroupDetails> {
     );
   }
 
-  // ================= HEADER =================
-
-  Widget _header() {
+  // ── Шапка ────────────────────────────────────────────────────────────────
+  Widget _buildHeader() {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          currentTeacher.name,
-          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              RichText(
+                text: const TextSpan(
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: Color(0xFF1A2233)),
+                  children: [
+                    TextSpan(text: 'Группа: Продвинутый уровень '),
+                    TextSpan(text: 'A2', style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900)),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text('ID: GR-204  |  Расписание: Пн, Ср, Пт 18:00', style: TextStyle(fontSize: 13, color: Colors.grey[500])),
+            ],
+          ),
         ),
-        PopupMenuButton<TeacherModel>(
-          onSelected: _changeTeacher,
-          child: ElevatedButton.icon(
-            onPressed: null,
-            icon: const Icon(Icons.swap_horiz, color: Colors.black),
-            label: const Text(
-              'Поменять учителя',
-              style: TextStyle(color: Colors.black),
+        const SizedBox(width: 16),
+        OutlinedButton.icon(
+          onPressed: () {},
+          icon: Icon(Icons.edit_outlined, size: 15, color: Colors.grey[700]),
+          label: Text('Редактировать', style: TextStyle(fontSize: 13, color: Colors.grey[700])),
+          style: OutlinedButton.styleFrom(
+            side: BorderSide(color: Colors.grey.withOpacity(0.3)),
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        ),
+        const SizedBox(width: 10),
+        ElevatedButton.icon(
+          onPressed: () {},
+          icon: const Icon(Icons.add, size: 15, color: Colors.white),
+          label: const Text('Добавить студента', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFFED6A2E),
+            elevation: 0,
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ── Информация + Финансы ──────────────────────────────────────────────────
+  Widget _buildInfoAndFinance() {
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Карточка информации
+          Container(
+            width: 310,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10)],
             ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white,
-              elevation: 2,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: const [
+                    Icon(Icons.info_outline, size: 15, color: Color(0xFFED6A2E)),
+                    SizedBox(width: 8),
+                    Text('Информация', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF1A2233))),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                _infoRow('Основной учитель', currentTeacher.name, const Color(0xFF1A2233)),
+                const SizedBox(height: 14),
+                _infoRow('Замена', 'Елена Петрова (до 15.10)', const Color(0xFFED6A2E)),
+                const SizedBox(height: 14),
+                _infoRow('Учебная комната', '304 (Синяя)', const Color(0xFF1A2233)),
+              ],
+            ),
+          ),
+
+          const SizedBox(width: 16),
+
+          // Карточка финансов
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10)],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: const [
+                      Icon(Icons.account_balance_wallet_outlined, size: 15, color: Color(0xFFED6A2E)),
+                      SizedBox(width: 8),
+                      Text('Финансы преподавателя', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF1A2233))),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      _financeStat('СТАВКА ЗА УЧЕНИКА', '$pricePerStudent Сум', Colors.black87),
+                      const SizedBox(width: 40),
+                      _financeStat('ДОХОД ЗА ДЕНЬ', '$_dailyIncome Сум', const Color(0xFFED6A2E)),
+                      const SizedBox(width: 40),
+                      _financeStat('ТЕКУЩИЙ БАЛАНС', '${currentTeacher.balance} Сум', const Color(0xFF2ECC8A)),
+                    ],
+                  ),
+                ],
               ),
             ),
           ),
-          itemBuilder: (_) => teachers
-              .map(
-                (t) => PopupMenuItem(
-                  value: t,
-                  child: Text('${t.name} — ${t.balance} сум'),
-                ),
-              )
-              .toList(),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
-  // ================= STATS =================
-
-  Widget _stats() {
+  Widget _infoRow(String label, String value, Color valueColor) {
     return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        _stat('За ученика', '$pricePerStudent сум'),
-        _stat('За день', '$dailyIncome сум'),
-        _stat('Баланс', '${currentTeacher.balance} сум'),
+        Text(label, style: TextStyle(fontSize: 13, color: Colors.grey[500])),
+        Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: valueColor)),
       ],
     );
   }
 
-  Widget _stat(String title, String value) {
-    return Expanded(
-      child: AppCard(
-        margin: const EdgeInsets.only(right: 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(title, style: TextStyle(color: Colors.grey, fontSize: 13)),
-            const SizedBox(height: 8),
-            Text(
-              value,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+  Widget _financeStat(String label, String value, Color valueColor) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Colors.grey[400], letterSpacing: 0.5)),
+        const SizedBox(height: 8),
+        Text(value, style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: valueColor)),
+      ],
+    );
+  }
+
+  // ── Таблица посещаемости ──────────────────────────────────────────────────
+  Widget _buildAttendanceTable() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10)],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Заголовок
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 18, 24, 14),
+            child: Row(
+              children: [
+                RichText(
+                  text: TextSpan(
+                    style: const TextStyle(fontSize: 15, color: Color(0xFF1A2233)),
+                    children: [
+                      const TextSpan(text: 'Посещаемость и успеваемость: ', style: TextStyle(fontWeight: FontWeight.w700)),
+                      TextSpan(text: _lessonDate, style: const TextStyle(fontWeight: FontWeight.w800)),
+                    ],
+                  ),
+                ),
+                const Spacer(),
+                Icon(Icons.calendar_today_outlined, size: 14, color: Colors.grey[400]),
+                const SizedBox(width: 6),
+                Text('Урок №$_lessonNumber из $_totalLessons', style: TextStyle(fontSize: 13, color: Colors.grey[500])),
+              ],
             ),
-          ],
+          ),
+
+          // Шапка колонок
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+            decoration: BoxDecoration(
+              border: Border.symmetric(horizontal: BorderSide(color: Colors.grey.withOpacity(0.1))),
+            ),
+            child: Row(
+              children: const [
+                SizedBox(width: 40), // аватар
+                SizedBox(width: 12),
+                Expanded(flex: 4, child: _ColHeader('ИМЯ СТУДЕНТА')),
+                Expanded(flex: 3, child: _ColHeader('СТАТУС')),
+                Expanded(flex: 3, child: _ColHeader('БАЛАНС')),
+                Expanded(flex: 2, child: _ColHeader('БЫЛ/НЕТ')),
+                Expanded(flex: 2, child: _ColHeader('ОЦЕНКА')),
+                Expanded(flex: 3, child: _ColHeader('ДЗ')),
+              ],
+            ),
+          ),
+
+          // Строки студентов
+          Expanded(
+            child: ListView.builder(
+              itemCount: groupStudents.length,
+              itemBuilder: (context, i) => _buildStudentRow(groupStudents[i]),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStudentRow(StudentModel s) {
+    final isPresent = _attendance[s.name] ?? false;
+    final isDebtor = s.balance < 0;
+    final grade = _grades[s.name];
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: Colors.grey.withOpacity(0.07))),
+      ),
+      child: Row(
+        children: [
+          // Аватар
+          _avatar(s.name),
+          const SizedBox(width: 12),
+
+          // Имя
+          Expanded(
+            flex: 4,
+            child: Text(s.name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF1A2233))),
+          ),
+
+          // Статус
+          Expanded(
+            flex: 3,
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: isDebtor ? const Color(0xFFED6A2E).withOpacity(0.1) : const Color(0xFF2ECC8A).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  isDebtor ? 'Долг' : 'Активен',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: isDebtor ? const Color(0xFFED6A2E) : const Color(0xFF2ECC8A),
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          // Баланс
+          Expanded(
+            flex: 3,
+            child: Text(
+              '${s.balance} Сум',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: isDebtor ? const Color(0xFFED6A2E) : const Color(0xFF1A2233),
+              ),
+            ),
+          ),
+
+          // Чекбокс
+          Expanded(
+            flex: 2,
+            child: Transform.scale(
+              scale: 1.1,
+              child: Checkbox(
+                value: isPresent,
+                activeColor: const Color(0xFFED6A2E),
+                checkColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                side: BorderSide(color: Colors.grey.withOpacity(0.4), width: 1.5),
+                onChanged: (v) => setState(() => _attendance[s.name] = v ?? false),
+              ),
+            ),
+          ),
+
+          // Оценка
+          Expanded(
+            flex: 2,
+            child: isPresent
+                ? _gradeDropdown(s.name, grade)
+                : Text('—', style: TextStyle(color: Colors.grey[300], fontSize: 14)),
+          ),
+
+          // ДЗ
+          Expanded(
+            flex: 3,
+            child: isPresent
+                ? _hwField(s.name)
+                : Text('—', style: TextStyle(color: Colors.grey[300], fontSize: 14)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _avatar(String name) {
+    final parts = name.trim().split(' ');
+    final initials = parts.length >= 2 ? '${parts[0][0]}${parts[1][0]}'.toUpperCase() : name[0].toUpperCase();
+    const colors = [Color(0xFFED6A2E), Color(0xFF6B7FD4), Color(0xFF2ECC8A), Color(0xFF8A9BB8)];
+    final color = colors[name.length % colors.length];
+    return CircleAvatar(
+      radius: 18,
+      backgroundColor: color.withOpacity(0.15),
+      child: Text(initials, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: color)),
+    );
+  }
+
+  // ── Оценка: число если выбрано, стрелка если нет ─────────────────────────
+  Widget _gradeDropdown(String name, int? grade) {
+    return SizedBox(
+      height: 34,
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<int>(
+          value: grade,
+          isDense: true,
+          // Показываем число если выбрано, иначе стрелку-вниз
+          hint: Icon(Icons.keyboard_arrow_down, size: 18, color: Colors.grey[400]),
+          icon: grade != null
+              ? Icon(Icons.keyboard_arrow_down, size: 16, color: Colors.grey[400])
+              : const SizedBox.shrink(),
+          selectedItemBuilder: (_) => List.generate(5, (i) {
+            return Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                '${i + 1}',
+                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF1A2233)),
+              ),
+            );
+          }),
+          items: List.generate(5, (i) {
+            final v = i + 1;
+            return DropdownMenuItem(
+              value: v,
+              child: Text('$v', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+            );
+          }),
+          onChanged: (v) => setState(() => _grades[name] = v),
         ),
       ),
     );
+  }
+
+  // ── ДЗ поле со стабильным контроллером ───────────────────────────────────
+  Widget _hwField(String name) {
+    return SizedBox(
+      height: 34,
+      child: TextField(
+        controller: _hwControllers[name],
+        style: const TextStyle(fontSize: 13),
+        decoration: InputDecoration(
+          hintText: 'Нет',
+          hintStyle: TextStyle(fontSize: 13, color: Colors.grey[400]),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide(color: Colors.grey.withOpacity(0.2)),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide(color: Colors.grey.withOpacity(0.2)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: Color(0xFFED6A2E)),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ColHeader extends StatelessWidget {
+  final String text;
+  const _ColHeader(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(text, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF8A9BB8), letterSpacing: 0.4));
   }
 }

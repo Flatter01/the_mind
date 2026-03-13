@@ -6,8 +6,6 @@ import 'package:printing/printing.dart';
 import 'package:srm/src/core/colors/app_colors.dart';
 import 'package:srm/src/the_mind/home/presentation/home_page.dart';
 import 'package:srm/src/the_mind/main_the_mind/presentation/the_mind_page.dart';
-import 'package:srm/src/the_mind/the_mind_exams/data/datasources/exam_api_service.dart';
-import 'package:srm/src/the_mind/the_mind_exams/presentation/cubit/exam_cubit.dart';
 import 'package:srm/src/the_mind/the_mind_exams/presentation/the_mind_exams_page.dart';
 import 'package:srm/src/the_mind/the_mind_group/presentation/the_mind_groups/the_mind_group.dart';
 import 'package:srm/src/the_mind/the_mind_nav_bar/models/app_notification.dart';
@@ -17,14 +15,16 @@ import 'package:srm/src/the_mind/the_mind_nav_bar/widget/top_bar.dart';
 import 'package:srm/src/the_mind/the_mind_profile/presentation/the_mind_profile_page.dart';
 import 'package:srm/src/the_mind/the_mind_salary/presentation/the_mind_salary_page.dart';
 import 'package:srm/src/the_mind/the_mind_settings/presentation/the_mind_settings_page.dart';
-import 'package:srm/src/the_mind/the_mind_students/data/datasources/student_api_service.dart';
 import 'package:srm/src/the_mind/the_mind_students/presentation/faol_lidlar/faol_lidlar_page.dart';
 import 'package:srm/src/the_mind/the_mind_students/data/model/students/build_students_table_ltem.dart';
-import 'package:srm/src/the_mind/the_mind_students/presentation/student/cubit/student_cubit.dart';
+import 'package:srm/src/the_mind/the_mind_students/presentation/student/cubit/payment/payment_cubit.dart';
+import 'package:srm/src/the_mind/the_mind_students/presentation/student/cubit/student/student_cubit.dart';
+import 'package:srm/src/the_mind/the_mind_students/presentation/student/cubit/student/student_state.dart';
 import 'package:srm/src/the_mind/the_mind_students/presentation/student/the_mind_students_page.dart';
 import 'package:srm/src/the_mind/the_mind_students/presentation/student/widgets/add_payment/add_payment_dialog_responsive.dart';
 import 'package:srm/src/the_mind/the_mind_students/presentation/student/widgets/add_student/add_student_dialog.dart';
 import 'package:srm/src/the_mind/the_mind_students/presentation/student/widgets/add_student/add_student_dialog_responsive.dart';
+import 'package:srm/src/the_mind/the_mind_task/the_mind_task_page.dart';
 import 'package:srm/src/the_mind/the_mind_teacher/presentation/the_mind_teacher_page.dart';
 import 'package:srm/src/the_mind/the_mind_transactions/presentation/transactions_page.dart';
 import 'package:srm/src/the_mind/the_mind_workers/the_mind_workers_page.dart';
@@ -168,28 +168,21 @@ class _WebCustomBottomNavState extends State<WebCustomBottomNav> {
       case 2:
         return const FaolLidlarPage();
       case 3:
-        return BlocProvider(
-          create: (context) =>
-              StudentCubit(repository: StudentRepository())..getStudents(),
-          child: const TheMindStudentsPage(),
-        );
+        return const TheMindStudentsPage();
       case 4:
         return const TheMindGroup();
       case 5:
-        return BlocProvider(
-          create: (_) => ExamCubit(ExamApiService())..getExams(),
-          child: TheMindExamsPage(),
-        );
+        return TheMindExamsPage();
       case 6:
         return const TheMindTeacherPage();
       case 7:
-        return const TheMindWorkersPage();
+        return const TheMindTaskPage();
       case 8:
-        return const TheMindSalaryPage();
+        return const TheMindWorkersPage();
       case 9:
-        return const TransactionsPage();
+        return const TheMindSalaryPage();
       case 10:
-        return const TheMindProfilePage();
+        return const TransactionsPage();
       case 11:
         return const TheMindSettingsPage();
       default:
@@ -264,22 +257,6 @@ class _WebCustomBottomNavState extends State<WebCustomBottomNav> {
           Expanded(
             child: Column(
               children: [
-                TopBar(
-                  showBackButton: canPop,
-                  isMobile: isMobile,
-                  onTask: _openTask,
-                  onNotifications: _openNotifications,
-                  onAddMenu: _openAddMenu,
-                  selectedBranch: selectedBranch,
-                  branches: branches,
-
-                  onBranchChanged: (value) {
-                    setState(() {
-                      selectedBranch = value;
-                    });
-                  },
-                  onBack: popInner,
-                ),
                 Expanded(
                   child: Navigator(
                     key: _contentNavKey,
@@ -424,9 +401,29 @@ class _WebCustomBottomNavState extends State<WebCustomBottomNav> {
     }
 
     if (selected == 'payment') {
+      final paymentCubit = context.read<PaymentCubit>();
       final result = await showDialog(
         context: context,
-        builder: (_) => AddPaymentDialogResponsive(students: students),
+        builder: (_) => BlocProvider.value(
+          value: paymentCubit,
+          child: BlocBuilder<StudentCubit, StudentState>(
+            builder: (context, state) {
+              if (state is StudentLoading) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              if (state is StudentError) {
+                return Center(child: Text(state.message));
+              }
+
+              if (state is StudentLoaded) {
+                return AddPaymentDialogResponsive(students: state.students);
+              }
+
+              return const SizedBox();
+            },
+          ),
+        ),
       );
 
       if (result != null) {

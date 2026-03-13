@@ -1,10 +1,46 @@
 import 'package:flutter/material.dart';
-import 'package:srm/src/the_mind/auth/auth_page.dart';
-import 'package:srm/src/the_mind/the_mind_nav_bar/nav_bar.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:get_storage/get_storage.dart';
+import 'package:srm/src/the_mind/auth/data/auth_api_service.dart';
+import 'package:srm/src/the_mind/auth/presentation/app_start_page.dart';
+import 'package:srm/src/the_mind/auth/presentation/auth_page.dart';
+import 'package:srm/src/the_mind/auth/presentation/cubit/auth_cubit.dart';
+import 'package:srm/src/the_mind/the_mind_exams/data/datasources/exam_api_service.dart';
+import 'package:srm/src/the_mind/the_mind_exams/presentation/cubit/exam_cubit.dart';
+import 'package:srm/src/the_mind/the_mind_group/data/datasources/group_api_service.dart';
+import 'package:srm/src/the_mind/the_mind_group/presentation/cubit/payment/group_cubit.dart';
+import 'package:srm/src/the_mind/the_mind_students/data/datasources/student_api_payment_servise.dart';
+import 'package:srm/src/the_mind/the_mind_students/data/datasources/student_api_service.dart';
+import 'package:srm/src/the_mind/the_mind_students/presentation/student/cubit/payment/payment_cubit.dart';
+import 'package:srm/src/the_mind/the_mind_students/presentation/student/cubit/student/student_cubit.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(MyApp());
+  await GetStorage.init();
+
+  runApp(
+    MultiBlocProvider(
+      providers: [
+        BlocProvider(create: (_) => AuthCubit(AuthApiService())),
+        BlocProvider(
+          create: (context) =>
+              PaymentCubit(StudentApiPaymentServise())..getPayments(),
+        ),
+        BlocProvider(
+          create: (context) =>
+              GroupCubit(GroupApiService())..getGroups(),
+        ),
+        BlocProvider(
+          create: (context) =>
+              StudentCubit(repository: StudentRepository())..getStudents(),
+        ),
+        BlocProvider(
+          create: (context) => ExamCubit(ExamApiService())..getExams(),
+        ),
+      ],
+      child: MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -16,7 +52,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'The Mind',
       theme: ThemeData(primarySwatch: Colors.indigo),
-      home: AuthPage(),
+      home: AppStartPage(),
     );
   }
 }

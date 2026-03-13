@@ -4,23 +4,10 @@ import 'package:srm/src/core/widgets/card/app_card.dart';
 import 'package:srm/src/the_mind/the_mind_group/data/models/group_model.dart';
 import 'package:srm/src/the_mind/the_mind_group/presentation/group_details/presentation/group_details.dart';
 
-class BuildGroupTable extends StatefulWidget {
+class BuildGroupTable extends StatelessWidget {
   final List<GroupModel> groups;
 
   const BuildGroupTable({super.key, required this.groups});
-
-  @override
-  State<BuildGroupTable> createState() => _BuildGroupTableState();
-}
-
-class _BuildGroupTableState extends State<BuildGroupTable> {
-  late List<GroupModel> groups;
-
-  @override
-  void initState() {
-    super.initState();
-    groups = List.from(widget.groups);
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -33,35 +20,36 @@ class _BuildGroupTableState extends State<BuildGroupTable> {
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 16),
-          Table(
-            columnWidths: const {
-              0: FlexColumnWidth(3), // Название группы — самая длинная
-              1: FlexColumnWidth(2.5), // Учитель — тоже длинная
-              2: FlexColumnWidth(1.2), // Кол-во студентов — короткое число
-              3: FlexColumnWidth(1.2), // Лимит студентов — короткое число
-              4: FlexColumnWidth(1.4), // Статус — средняя ширина
-              5: FlexColumnWidth(1.2), // Тип недели — короткий
-              6: FlexColumnWidth(1.4), // Время — чуть шире
-              7: FlexColumnWidth(1.4), // Level + Stage — средняя ширина
-              8: FixedColumnWidth(50), // Меню
-            },
-
-            border: const TableBorder(
-              horizontalInside: BorderSide(color: Colors.black12),
-            ),
-            children: [
-              _tableHeader(),
-              ...groups.asMap().entries.map(
-                (entry) => _tableRow(context, entry.key, entry.value),
+          Expanded(
+            child: SingleChildScrollView(
+              child: Table(
+                columnWidths: const {
+                  0: FlexColumnWidth(3), // Название группы
+                  1: FlexColumnWidth(2.5), // Учитель
+                  2: FlexColumnWidth(1.2), // Кол-во студентов
+                  3: FlexColumnWidth(1.2), // Лимит студентов
+                  4: FlexColumnWidth(1.4), // Статус
+                  5: FlexColumnWidth(1.4), // Дни
+                  6: FlexColumnWidth(1.4), // Время
+                  7: FlexColumnWidth(1.4), // Уровень
+                  8: FixedColumnWidth(50), // Меню
+                },
+                border: const TableBorder(
+                  horizontalInside: BorderSide(color: Colors.black12),
+                ),
+                children: [
+                  _tableHeader(),
+                  ...groups.asMap().entries.map(
+                    (entry) => _tableRow(context, entry.key, entry.value),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ],
       ),
     );
   }
-
-  // ---------------- HEADER ----------------
 
   TableRow _tableHeader() {
     return const TableRow(
@@ -70,9 +58,9 @@ class _BuildGroupTableState extends State<BuildGroupTable> {
         _HeaderCell("Guruh nomi"),
         _HeaderCell("O'qituvchi"),
         _HeaderCell("O'quvchilar"),
-        _HeaderCell("O'quvchilar Limit"),
+        _HeaderCell("Limit"),
         _HeaderCell("Holati"),
-        _HeaderCell("Haftalar"),
+        _HeaderCell("Kunlar"),
         _HeaderCell("Vaqti"),
         _HeaderCell("Level"),
         _HeaderCell(""),
@@ -80,43 +68,37 @@ class _BuildGroupTableState extends State<BuildGroupTable> {
     );
   }
 
-  // ---------------- ROW ----------------
-
   TableRow _tableRow(BuildContext context, int index, GroupModel g) {
-    final bool isActive = g.status == GroupStatus.active;
+    final bool isActive = g.isActive ?? false;
     final Color statusColor = isActive ? Colors.green : Colors.grey;
 
     return TableRow(
       children: [
-        _touch(context, _cell(g.name, bold: true, color: _groupColor(g))),
-        _touch(context, _cell(g.teacher)),
-        _touch(context, _cell(g.students.toString())),
-        _touch(context, _cell(g.studentsLimit.toString())),
-        _touch(context, _cell(g.status.label, bold: true, color: statusColor)),
-        _touch(context, _cell(g.weekType.label)),
-        _touch(context, _cell(g.lessonTime)),
-
-        // 👇 Level + Stage
-        _touch(context, _cell("${g.level.label} ${g.levelStage}", bold: true)),
-
-        _menu(context, g, index),
+        _touch(context, _cell(g.name ?? '', bold: true, color: _groupColor(g))),
+        _touch(context, _cell(g.teacher ?? '')),
+        _touch(context, _cell((g.studentCount ?? 0).toString())),
+        _touch(context, _cell((g.room ?? 0).toString())), // Используем room как limit
+        _touch(context, _cell(isActive ? 'Active' : 'Finished', bold: true, color: statusColor)),
+        _touch(context, _cell(g.weekDays?.toString() ?? '')),
+        _touch(context, _cell("${g.startTime ?? ''} - ${g.endTime ?? ''}")),
+        _touch(context, _cell(g.level ?? '')),
+        _menu(context, index),
       ],
     );
   }
 
   Color _groupColor(GroupModel g) {
-    if (g.level == GroupLevel.beginner) {
-      return AppColors.mainColor; // оранжевый
-    } else if (g.level == GroupLevel.individual) {
-      return Colors.green; // индивидуальные
-    } else {
-      return Colors.blue; // остальные
+    switch (g.level) {
+      case 'beginner':
+        return AppColors.mainColor;
+      case 'individual':
+        return Colors.green;
+      default:
+        return Colors.blue;
     }
   }
 
-  // ---------------- MENU ----------------
-
-  Widget _menu(BuildContext context, GroupModel g, int index) {
+  Widget _menu(BuildContext context, int index) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Center(
@@ -132,57 +114,15 @@ class _BuildGroupTableState extends State<BuildGroupTable> {
                 context,
                 MaterialPageRoute(builder: (_) => GroupDetails()),
               );
-            } else if (value == 'delete') {
-              setState(() {
-                groups.removeAt(index);
-              });
-            } else if (value.startsWith('level_')) {
-              final newLevel = GroupLevel.values.firstWhere(
-                (e) => e.name == value.split('_')[1],
-              );
-
-              setState(() {
-                groups[index] = groups[index].copyWith(level: newLevel);
-              });
-            } else if (value.startsWith('stage_')) {
-              final newStage = int.parse(value.split('_')[1]);
-
-              setState(() {
-                groups[index] = groups[index].copyWith(levelStage: newStage);
-              });
             }
           },
-          itemBuilder: (context) => [
-            const PopupMenuItem(value: 'details', child: Text("Ochish")),
-            const PopupMenuItem(value: 'delete', child: Text("O‘chirish")),
-
-            const PopupMenuDivider(),
-            const PopupMenuItem(enabled: false, child: Text("Level")),
-
-            ...GroupLevel.values.map(
-              (level) => PopupMenuItem(
-                value: 'level_${level.name}',
-                child: Text(level.label),
-              ),
-            ),
-
-            const PopupMenuDivider(),
-            const PopupMenuItem(enabled: false, child: Text("Stage")),
-
-            ...List.generate(
-              5,
-              (index) => PopupMenuItem(
-                value: 'stage_${index + 1}',
-                child: Text("Stage ${index + 1}"),
-              ),
-            ),
+          itemBuilder: (context) => const [
+            PopupMenuItem(value: 'details', child: Text("Ochish")),
           ],
         ),
       ),
     );
   }
-
-  // ---------------- TAP ----------------
 
   Widget _touch(BuildContext context, Widget child) {
     return InkWell(
@@ -195,8 +135,6 @@ class _BuildGroupTableState extends State<BuildGroupTable> {
       child: child,
     );
   }
-
-  // ---------------- CELL ----------------
 
   Widget _cell(String text, {Color? color, bool bold = false}) {
     return Padding(
@@ -212,8 +150,6 @@ class _BuildGroupTableState extends State<BuildGroupTable> {
     );
   }
 }
-
-// ---------------- HEADER CELL ----------------
 
 class _HeaderCell extends StatelessWidget {
   final String text;

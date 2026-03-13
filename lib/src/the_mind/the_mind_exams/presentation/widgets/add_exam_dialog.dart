@@ -19,12 +19,11 @@ class AddExamDialog extends StatefulWidget {
 }
 
 class _AddExamDialogState extends State<AddExamDialog> {
-  final title = TextEditingController();
-  final direction = TextEditingController();
+  final titleController = TextEditingController();
+  final directionController = TextEditingController();
 
   String? selectedGroup;
   String? selectedTeacher;
-
   DateTime? date;
 
   @override
@@ -40,28 +39,30 @@ class _AddExamDialogState extends State<AddExamDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _header(),
+              const Text(
+                "Add exam",
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
+              ),
+
               const SizedBox(height: 24),
 
               Row(
                 children: [
-                  Expanded(child: _field(title, "Exam name")),
+                  Expanded(child: _buildField(titleController, "Exam name")),
                   const SizedBox(width: 16),
-                  Expanded(child: _groupDropdown()),
+                  Expanded(child: _buildGroupDropdown()),
                 ],
               ),
 
-              _teacherDropdown(),
-
-              _field(direction, "Direction"),
+              _buildTeacherDropdown(),
 
               const SizedBox(height: 8),
 
-              _datePicker(),
+              _buildDatePicker(),
 
               const SizedBox(height: 28),
 
-              _actions(context),
+              _buildActions(context),
             ],
           ),
         ),
@@ -69,18 +70,11 @@ class _AddExamDialogState extends State<AddExamDialog> {
     );
   }
 
-  Widget _header() {
-    return const Text(
-      "Add exam",
-      style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
-    );
-  }
-
-  Widget _field(TextEditingController c, String label) {
+  Widget _buildField(TextEditingController controller, String label) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: TextField(
-        controller: c,
+        controller: controller,
         decoration: InputDecoration(
           labelText: label,
           filled: true,
@@ -94,8 +88,8 @@ class _AddExamDialogState extends State<AddExamDialog> {
     );
   }
 
-  /// GROUP
-  Widget _groupDropdown() {
+  /// GROUP DROPDOWN
+  Widget _buildGroupDropdown() {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: DropdownButtonFormField<String>(
@@ -121,8 +115,8 @@ class _AddExamDialogState extends State<AddExamDialog> {
     );
   }
 
-  /// TEACHER
-  Widget _teacherDropdown() {
+  /// TEACHER DROPDOWN
+  Widget _buildTeacherDropdown() {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: DropdownButtonFormField<String>(
@@ -148,7 +142,8 @@ class _AddExamDialogState extends State<AddExamDialog> {
     );
   }
 
-  Widget _datePicker() {
+  /// DATE PICKER
+  Widget _buildDatePicker() {
     return InkWell(
       borderRadius: BorderRadius.circular(14),
       onTap: _pickDate,
@@ -174,7 +169,8 @@ class _AddExamDialogState extends State<AddExamDialog> {
     );
   }
 
-  Widget _actions(BuildContext context) {
+  /// ACTION BUTTONS
+  Widget _buildActions(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
@@ -199,6 +195,7 @@ class _AddExamDialogState extends State<AddExamDialog> {
     );
   }
 
+  /// PICK DATE
   void _pickDate() async {
     final now = DateTime.now();
 
@@ -210,58 +207,45 @@ class _AddExamDialogState extends State<AddExamDialog> {
     );
 
     if (picked != null) {
-      setState(() => date = picked);
+      setState(() {
+        date = picked;
+      });
     }
   }
 
+  /// SAVE EXAM
   void _save() async {
-    if (title.text.isEmpty ||
+    if (titleController.text.isEmpty ||
         selectedGroup == null ||
         selectedTeacher == null ||
-        direction.text.isEmpty ||
-        date == null)
+        directionController.text.isEmpty ||
+        date == null) {
       return;
-
-    // Формируем тело POST-запроса
-    final Map<String, dynamic> data = {
-      "title": title.text,
-      "group": widget.groups.indexOf(
-        selectedGroup!,
-      ), // или айди группы, если есть
-      "exam_date": date!.toIso8601String().split('T')[0], // YYYY-MM-DD
-      "start_time": DateTime.now()
-          .toIso8601String(), // можно добавить поле времени
-      "end_time": DateTime.now()
-          .add(const Duration(hours: 2))
-          .toIso8601String(),
-      "pass_score": 0,
-      "is_percentage": true,
-      "is_active": true,
-      "created_by": "3fa85f64-5717-4562-b3fc-2c963f66afa6", // твой user_id
-    };
+    }
 
     try {
-      final examModel = await ExamApiService().postRequest(
-        'exams/',
-        data: data,
+      await ExamApiService().createExam(
+        title: titleController.text,
+        date: date!.toIso8601String().split('T')[0],
+        group: widget.groups.indexOf(selectedGroup!) + 1,
       );
 
-      // Если успешно, добавляем в локальный список
       widget.onAdd(
         ExamItem(
-          title: examModel.title,
+          title: titleController.text,
           group: selectedGroup!,
           teacher: selectedTeacher!,
-          direction: direction.text,
+          direction: directionController.text,
           date: date!,
         ),
       );
 
       Navigator.pop(context);
     } catch (e) {
-      // Показываем ошибку
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ошибка при создании экзамена: $e')),
+        SnackBar(
+          content: Text("Ошибка при создании экзамена: $e"),
+        ),
       );
     }
   }

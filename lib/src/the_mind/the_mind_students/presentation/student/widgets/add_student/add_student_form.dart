@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:srm/src/core/colors/app_colors.dart';
-import 'package:srm/src/the_mind/the_mind_students/presentation/student/cubit/student_cubit.dart';
-import 'package:srm/src/the_mind/the_mind_students/presentation/student/cubit/student_state.dart';
+import 'package:srm/src/the_mind/the_mind_students/presentation/student/cubit/student/student_cubit.dart';
+import 'package:srm/src/the_mind/the_mind_students/presentation/student/cubit/student/student_state.dart';
 
 class AddStudentForm extends StatefulWidget {
   final List<String> courses;

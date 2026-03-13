@@ -1,147 +1,77 @@
 class GroupModel {
-  final String name;
-  final String teacher;
-  final int students;
-  final GroupStatus status;
-  final DateTime createdAt;
-  final String lessonTime;
-  final WeekType weekType;
-  final String days;
-  final ExmansStatus exmans;
-  final GroupLevel level;
-  final int levelStage;
-  final int studentsLimit;
+  final int? id;
+  final String? name;
+  final String? level;
+  final String? levelDisplay;
+  final String? teacher; // если приходит строка
+  final String? teacherName;
+  final List<dynamic>? weekDays;
+  final int? studentCount;
+  final int? room;
+  final String? roomName;
+  final String? price;
+  final String? startDate;
+  final String? endDate;
+  final String? startTime;
+  final String? endTime;
+  final bool? isActive;
+  final String? createdAt;
 
   GroupModel({
-    required this.name,
-    required this.teacher,
-    required this.students,
-    required this.status,
-    required this.createdAt,
-    required this.lessonTime,
-    required this.weekType,
-    required this.days,
-    required this.exmans,
-    required this.level,
-    required this.levelStage,
-    required this.studentsLimit,
+    this.id,
+    this.name,
+    this.level,
+    this.levelDisplay,
+    this.teacher,
+    this.teacherName,
+    this.weekDays,
+    this.studentCount,
+    this.room,
+    this.roomName,
+    this.price,
+    this.startDate,
+    this.endDate,
+    this.startTime,
+    this.endTime,
+    this.isActive,
+    this.createdAt,
   });
-
-  // ---------------- COPY WITH ----------------
-
-  GroupModel copyWith({
-    String? name,
-    String? teacher,
-    int? students,
-    GroupStatus? status,
-    DateTime? createdAt,
-    String? lessonTime,
-    WeekType? weekType,
-    String? days,
-    ExmansStatus? exmans,
-    GroupLevel? level,
-    int? levelStage,
-    int? studentsLimit,
-  }) {
-    return GroupModel(
-      name: name ?? this.name,
-      teacher: teacher ?? this.teacher,
-      students: students ?? this.students,
-      status: status ?? this.status,
-      createdAt: createdAt ?? this.createdAt,
-      lessonTime: lessonTime ?? this.lessonTime,
-      weekType: weekType ?? this.weekType,
-      days: days ?? this.days,
-      exmans: exmans ?? this.exmans,
-      level: level ?? this.level,
-      levelStage: levelStage ?? this.levelStage,
-      studentsLimit: studentsLimit ?? this.studentsLimit
-    );
-  }
-
-  // ---------------- FROM JSON ----------------
 
   factory GroupModel.fromJson(Map<String, dynamic> json) {
     return GroupModel(
-      name: json['name'] ?? '',
-      teacher: json['teacher'] ?? '',
-      students: json['students'] ?? 0,
-      status: GroupStatus.values.firstWhere(
-        (e) => e.name == json['status'],
-      ),
-      createdAt: DateTime.parse(json['createdAt']),
-      lessonTime: json['lessonTime'] ?? '',
-      weekType: WeekType.values.firstWhere(
-        (e) => e.name == json['weekType'],
-      ),
-      days: json['days'] ?? '',
-      exmans: ExmansStatus.values.firstWhere(
-        (e) => e.name == json['exmans'],
-      ),
-      level: GroupLevel.values.firstWhere(
-        (e) => e.name == json['level'],
-      ),
-      levelStage: json['levelStage'] ?? 1,
-      studentsLimit:  json["studentsLimit"] ?? 0
+      id: json['id'],
+      name: json['name'],
+      level: json['level'],
+      levelDisplay: json['level_display'],
+      teacher: json['teacher'] is String ? json['teacher'] : null,
+      teacherName: json['teacher_name'],
+      weekDays: json['week_days'] is List ? List<dynamic>.from(json['week_days']) : null,
+      studentCount: json['student_count'],
+      room: json['room'],
+      roomName: json['room_name'],
+      price: json['price'],
+      startDate: json['start_date'],
+      endDate: json['end_date'],
+      startTime: json['start_time'],
+      endTime: json['end_time'],
+      isActive: json['is_active'],
+      createdAt: json['created_at'],
     );
   }
 
-  // ---------------- TO JSON ----------------
-
   Map<String, dynamic> toJson() {
     return {
-      'name': name,
-      'teacher': teacher,
-      'students': students,
-      'status': status.name,
-      'createdAt': createdAt.toIso8601String(),
-      'lessonTime': lessonTime,
-      'weekType': weekType.name,
-      'days': days,
-      'exmans': exmans.name,
-      'level': level.name,
-      'levelStage': levelStage,
-      'studentsLimit' : studentsLimit,
+      "name": name,
+      "level": level,
+      "teacher": teacher,
+      "week_days": weekDays,
+      "room": room,
+      "price": price,
+      "start_date": startDate,
+      "end_date": endDate,
+      "start_time": startTime,
+      "end_time": endTime,
+      "is_active": isActive,
     };
-  }
-
-  // Удобный getter
-  String get fullLevel => "${level.label} $levelStage";
-}
-
-enum GroupLevel { beginner, elementary, intermediate, advanced,individual}
-
-
-enum GroupStatus { active, finished }
-
-enum WeekType { odd, even }
-
-enum ExmansStatus { open, finished }
-
-extension GroupStatusX on GroupStatus {
-  String get label => this == GroupStatus.active ? 'Active' : 'Finished';
-}
-
-extension WeekTypeX on WeekType {
-  String get label => this == WeekType.odd ? 'Odd week' : 'Even week';
-}
-
-extension Exmans on ExmansStatus {
-  String get label => this == ExmansStatus.open ? 'Open' : 'Finished';
-}
-extension GroupLevelX on GroupLevel {
-  String get label {
-    switch (this) {
-      case GroupLevel.beginner:
-        return 'Beginner';
-      case GroupLevel.elementary:
-        return 'Elementary';
-      case GroupLevel.intermediate:
-        return 'Intermediate';
-      case GroupLevel.advanced:
-        return 'Advanced';
-      case GroupLevel.individual:
-        return 'individual';  
-    }
   }
 }

@@ -14,7 +14,7 @@ class StudentModel {
   final String joinedAt;
   final String createdAt;
 
-  final String? groupId;
+  final int? groupId;
   final String? groupName;
   final String balance;
 
@@ -68,7 +68,9 @@ class StudentModel {
       joinedAt: json["joined_at"] as String? ?? "",
       createdAt: json["created_at"] as String? ?? "",
       balance: json["balance"] as String? ?? "0",
-      groupId: json["group_id"]?.toString(),
+      groupId: json["group_id"] is int
+          ? json["group_id"]
+          : int.tryParse(json["group_id"].toString()),
       groupName: json["group_name"] as String?,
       teacherId: json["teacher_id"] as int?,
       teacherName: json["teacher_name"] as String?,

@@ -1,6 +1,25 @@
 import 'package:flutter/material.dart';
-import 'package:srm/src/core/colors/app_colors.dart';
+import 'package:flutter/services.dart';
 import '../the_mind_exams_page.dart';
+
+// Статус студента
+enum StudentStatus { present, absent, waiting }
+
+// Модель строки студента
+class ExamStudentRow {
+  final String firstName;
+  final String lastName;
+  StudentStatus status;
+  int? score;
+  final TextEditingController controller;
+
+  ExamStudentRow({
+    required this.firstName,
+    required this.lastName,
+    this.status = StudentStatus.waiting,
+    this.score,
+  }) : controller = TextEditingController(text: score?.toString() ?? '');
+}
 
 class EditExamDialog extends StatefulWidget {
   final ExamItem exam;
@@ -21,333 +40,544 @@ class EditExamDialog extends StatefulWidget {
 }
 
 class _EditExamDialogState extends State<EditExamDialog> {
-  late final TextEditingController title;
-  late final TextEditingController direction;
+  int _currentPage = 1;
+  final int _perPage = 5;
 
-  late DateTime date;
-  late bool isFinished;
-  late String selectedGroup;
-  late String selectedTeacher;
+  String _examStatus = 'planned';
 
-  late List<StudentMark> marks;
-
-  final groups = ["Group A", "Group B", "Group C"];
+  final List<ExamStudentRow> _students = [
+    ExamStudentRow(
+      firstName: 'Александр',
+      lastName: 'Петров',
+      status: StudentStatus.present,
+      score: 85,
+    ),
+    ExamStudentRow(
+      firstName: 'Мария',
+      lastName: 'Сидорова',
+      status: StudentStatus.present,
+      score: 92,
+    ),
+    ExamStudentRow(firstName: 'Дмитрий', lastName: 'Кузнецов'),
+    ExamStudentRow(
+      firstName: 'Елена',
+      lastName: 'Волкова',
+      status: StudentStatus.absent,
+      score: 0,
+    ),
+    ExamStudentRow(
+      firstName: 'Сергей',
+      lastName: 'Морозов',
+      status: StudentStatus.present,
+      score: 78,
+    ),
+    ExamStudentRow(firstName: 'Анна', lastName: 'Смирнова'),
+    ExamStudentRow(firstName: 'Игорь', lastName: 'Попов'),
+  ];
 
   @override
   void initState() {
     super.initState();
-
-    title = TextEditingController(text: widget.exam.title);
-    direction = TextEditingController(text: widget.exam.direction);
-
-    date = widget.exam.date;
-    isFinished = widget.exam.isFinished;
-
-    selectedGroup = widget.exam.group;
-    selectedTeacher = widget.exam.teacher;
-
-    marks = List.from(widget.exam.students);
-
-    _ensureStudentsLoaded();
-  }
-
-  void _ensureStudentsLoaded() {
-    final groupStudents = widget.allStudents
-        .where((s) => s.group == selectedGroup)
-        .toList();
-
-    for (final s in groupStudents) {
-      if (!marks.any((m) => m.fullName == s.fullName)) {
-        marks.add(StudentMark(fullName: s.fullName, mark: 0));
-      }
+    _examStatus = widget.exam.status;
+    for (final s in _students) {
+      s.controller.text = s.score?.toString() ?? '';
     }
   }
 
   @override
+  void dispose() {
+    for (final s in _students) {
+      s.controller.dispose();
+    }
+    super.dispose();
+  }
+
+  int get _totalStudents => _students.length;
+  int get _passed => _students.where((s) => (s.score ?? 0) >= 60).length;
+  double get _avgScore {
+    final scored = _students
+        .where((s) => s.score != null && s.score! > 0)
+        .toList();
+    if (scored.isEmpty) return 0;
+    return scored.fold<double>(0, (sum, s) => sum + s.score!) / scored.length;
+  }
+
+  List<ExamStudentRow> get _pageItems =>
+      _students.skip((_currentPage - 1) * _perPage).take(_perPage).toList();
+
+  int get _totalPages => (_students.length / _perPage).ceil().clamp(1, 999);
+
+  @override
   Widget build(BuildContext context) {
-    return Dialog(
-      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      backgroundColor: AppColors.bgColor,
-      child: SizedBox(
-        width: 650,
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: SingleChildScrollView(
-            child: Column(
+    final e = widget.exam;
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF2F5F7),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Заголовок
+            Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  "Edit Exam",
-                  style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87),
+                // Кнопка назад
+                IconButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(Icons.arrow_back_ios_new, size: 18),
+                  style: IconButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      side: BorderSide(color: Colors.grey.withOpacity(0.2)),
+                    ),
+                    padding: const EdgeInsets.all(10),
+                  ),
                 ),
-
-                const SizedBox(height: 20),
-
-                _modernField(title, "Exam name"),
-
-                _modernGroupDropdown(),
-
-                _modernTeacherDropdown(),
-
-                _modernField(direction, "Direction"),
-
-                _modernDatePicker(),
-
-                _modernStatusSwitch(),
-
-                const SizedBox(height: 24),
-
-                const Text(
-                  "Student Marks",
-                  style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black87),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        e.title,
+                        style: const TextStyle(
+                          fontSize: 26,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF1A2233),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Управление процессом проведения экзамена и ведомость успеваемости группы ${e.group}',
+                        style: TextStyle(fontSize: 13, color: Colors.grey[500]),
+                      ),
+                    ],
+                  ),
                 ),
-
-                const SizedBox(height: 12),
-
-                ...marks.map(_modernMarkRow),
-
-                const SizedBox(height: 28),
-
-                _modernActions(),
+                const SizedBox(width: 16),
+                ElevatedButton.icon(
+                  onPressed: _examStatus == 'finished'
+                      ? null
+                      : () => setState(() => _examStatus = 'started'),
+                  icon: const Icon(Icons.play_arrow, color: Colors.white, size: 16),
+                  label: const Text(
+                    'Начать экзамен',
+                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFED6A2E),
+                    disabledBackgroundColor: Colors.grey[300],
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                OutlinedButton.icon(
+                  onPressed: _examStatus == 'planned'
+                      ? null
+                      : () => setState(() => _examStatus = 'finished'),
+                  icon: Icon(Icons.stop_outlined, size: 16, color: Colors.grey[700]),
+                  label: Text(
+                    'Завершить',
+                    style: TextStyle(color: Colors.grey[700], fontWeight: FontWeight.w600),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(color: Colors.grey.withOpacity(0.3)),
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
               ],
             ),
-          ),
-        ),
-      ),
-    );
-  }
 
-  Widget _modernField(TextEditingController c, String label) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: TextField(
-        controller: c,
-        decoration: InputDecoration(
-          labelText: label,
-          filled: true,
-          fillColor: Colors.white,
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: BorderSide.none),
-        ),
-      ),
-    );
-  }
+            const SizedBox(height: 24),
 
-  /// GROUP DROPDOWN
-  Widget _modernGroupDropdown() {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: DropdownButtonFormField<String>(
-        value: selectedGroup,
-        items: groups
-            .map((g) => DropdownMenuItem(
-                  value: g,
-                  child: Text(g),
-                ))
-            .toList(),
-        onChanged: (v) {
-          setState(() {
-            selectedGroup = v!;
-            marks.clear();
-            _ensureStudentsLoaded();
-          });
-        },
-        decoration: InputDecoration(
-          labelText: "Group",
-          filled: true,
-          fillColor: Colors.white,
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: BorderSide.none),
-        ),
-      ),
-    );
-  }
+            // Инфо карточки
+            Row(
+              children: [
+                _infoCard('ЭКЗАМЕН', e.title),
+                const SizedBox(width: 12),
+                _infoCard('ГРУППА', e.group),
+                const SizedBox(width: 12),
+                _infoCard('ПРЕПОДАВАТЕЛЬ', e.teacher),
+                const SizedBox(width: 12),
+                _infoCard('ДАТА ПРОВЕДЕНИЯ', _formatDate(e.date)),
+              ],
+            ),
 
-  /// TEACHER DROPDOWN
-  Widget _modernTeacherDropdown() {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: DropdownButtonFormField<String>(
-        value: selectedTeacher,
-        items:widget.teachers
-            .map((t) => DropdownMenuItem(
-                  value: t,
-                  child: Text(t),
-                ))
-            .toList(),
-        onChanged: (v) {
-          setState(() {
-            selectedTeacher = v!;
-          });
-        },
-        decoration: InputDecoration(
-          labelText: "Teacher",
-          filled: true,
-          fillColor: Colors.white,
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: BorderSide.none),
-        ),
-      ),
-    );
-  }
+            const SizedBox(height: 20),
 
-  Widget _modernMarkRow(StudentMark m) {
-    final ctrl = TextEditingController(text: m.mark.toString());
-
-    return Card(
-      margin: const EdgeInsets.only(bottom: 10),
-      shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12)),
-      elevation: 2,
-      color: Colors.white,
-      child: Padding(
-        padding:
-            const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        child: Row(
-          children: [
-            Expanded(
-                child: Text(
-              m.fullName,
-              style: const TextStyle(fontSize: 15),
-            )),
-            SizedBox(
-              width: 100,
-              child: TextField(
-                controller: ctrl,
-                keyboardType: TextInputType.number,
-                textAlign: TextAlign.center,
-                decoration: InputDecoration(
-                  hintText: "0-100",
-                  filled: true,
-                  fillColor: AppColors.bgColor,
-                  contentPadding:
-                      const EdgeInsets.symmetric(
-                          vertical: 10, horizontal: 8),
-                  border: OutlineInputBorder(
-                      borderRadius:
-                          BorderRadius.circular(10),
-                      borderSide: BorderSide.none),
-                ),
-                onChanged: (v) {
-                  final val = int.tryParse(v) ?? 0;
-                  m.mark = val.clamp(0, 100);
-                },
+            // Таблица студентов
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10),
+                ],
               ),
-            )
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 18, 24, 14),
+                    child: Row(
+                      children: [
+                        const Text(
+                          'Список студентов',
+                          style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: Color(0xFF1A2233)),
+                        ),
+                        const Spacer(),
+                        const Icon(Icons.info_outline, size: 15, color: Color(0xFFED6A2E)),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Оценки сохраняются автоматически',
+                          style: TextStyle(fontSize: 13, color: Colors.grey[500]),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Шапка колонок
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                    decoration: BoxDecoration(
+                      border: Border.symmetric(
+                        horizontal: BorderSide(color: Colors.grey.withOpacity(0.1)),
+                      ),
+                    ),
+                    child: const Row(
+                      children: [
+                        SizedBox(width: 40, child: _ColH('№')),
+                        Expanded(flex: 4, child: _ColH('Имя')),
+                        Expanded(flex: 4, child: _ColH('Фамилия')),
+                        Expanded(flex: 3, child: _ColH('Статус')),
+                        Expanded(flex: 2, child: _ColH('Баллы (0-100)')),
+                      ],
+                    ),
+                  ),
+
+                  // Строки студентов
+                  ...List.generate(_pageItems.length, (i) {
+                    final s = _pageItems[i];
+                    final globalIndex = (_currentPage - 1) * _perPage + i + 1;
+                    return _studentRow(globalIndex, s);
+                  }),
+
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 14, 24, 18),
+                    child: Row(
+                      children: [
+                        Text(
+                          'Показано ${(_currentPage - 1) * _perPage + 1}-${(_currentPage - 1) * _perPage + _pageItems.length} из $_totalStudents студентов',
+                          style: TextStyle(fontSize: 13, color: Colors.grey[500]),
+                        ),
+                        const Spacer(),
+                        _buildPagination(),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // Статистика
+            Row(
+              children: [
+                _statCard(Icons.people_outlined, 'ВСЕГО СТУДЕНТОВ', '$_totalStudents'),
+                const SizedBox(width: 12),
+                _statCard(Icons.how_to_reg_outlined, 'СДАЛИ ЭКЗАМЕН', '$_passed'),
+                const SizedBox(width: 12),
+                _statCard(Icons.bar_chart_outlined, 'СРЕДНИЙ БАЛЛ', _avgScore.toStringAsFixed(1)),
+              ],
+            ),
+
+            const SizedBox(height: 24),
           ],
         ),
       ),
     );
   }
 
-  Widget _modernDatePicker() => GestureDetector(
-        onTap: _pickDate,
-        child: Container(
-          padding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          margin: const EdgeInsets.only(bottom: 16),
-          decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(14)),
-          child: Row(
-            children: [
-              Expanded(
-                  child: Text(
-                "${date.day}.${date.month}.${date.year}",
-                style: const TextStyle(fontSize: 15),
-              )),
-              const Icon(Icons.calendar_today_outlined, size: 20),
-            ],
-          ),
-        ),
-      );
-
-  Widget _modernStatusSwitch() => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        margin: const EdgeInsets.only(bottom: 16),
+  Widget _infoCard(String label, String value) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(14)),
-        child: SwitchListTile(
-          contentPadding: EdgeInsets.zero,
-          title: const Text("Finished"),
-          value: isFinished,
-          onChanged: (v) => setState(() => isFinished = v),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8)],
         ),
-      );
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label,
+              style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Colors.grey[400], letterSpacing: 0.4),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              value,
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF1A2233)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
-  Widget _modernActions() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: [
-        OutlinedButton(
-          style: OutlinedButton.styleFrom(
-            foregroundColor: AppColors.mainColor,
-            padding:
-                const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12)),
+  Widget _studentRow(int index, ExamStudentRow s) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: Colors.grey.withOpacity(0.07))),
+      ),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 40,
+            child: Text('$index', style: TextStyle(fontSize: 14, color: Colors.grey[600])),
           ),
-          onPressed: () => Navigator.pop(context),
-          child: const Text("Cancel"),
+          Expanded(
+            flex: 4,
+            child: Text(s.firstName, style: const TextStyle(fontSize: 14, color: Color(0xFF1A2233))),
+          ),
+          Expanded(
+            flex: 4,
+            child: Text(s.lastName, style: const TextStyle(fontSize: 14, color: Color(0xFF1A2233))),
+          ),
+          Expanded(flex: 3, child: _statusDropdown(s)),
+          Expanded(
+            flex: 2,
+            child: s.status == StudentStatus.waiting
+                ? Text('—', style: TextStyle(color: Colors.grey[400], fontSize: 16))
+                : SizedBox(
+                    width: 80,
+                    height: 36,
+                    child: TextField(
+                      controller: s.controller,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF1A2233),
+                      ),
+                      decoration: InputDecoration(
+                        contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(color: Colors.grey.withOpacity(0.2)),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(color: Colors.grey.withOpacity(0.2)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(color: Color(0xFFED6A2E)),
+                        ),
+                      ),
+                      onChanged: (v) {
+                        final val = int.tryParse(v);
+                        setState(() => s.score = val?.clamp(0, 100));
+                      },
+                    ),
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _statusDropdown(ExamStudentRow s) {
+    final info = _statusDisplay(s.status);
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: GestureDetector(
+        onTap: () => _pickStatus(s),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: info['bg'] as Color,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Text(
+            info['label'] as String,
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: info['color'] as Color),
+          ),
         ),
-        const SizedBox(width: 16),
-        ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.mainColor,
-            padding:
-                const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12)),
-          ),
-          onPressed: _save,
-          child: const Text(
-            "Save",
-            style: TextStyle(color: Colors.white),
-          ),
-        ),
+      ),
+    );
+  }
+
+  void _pickStatus(ExamStudentRow s) {
+    showMenu(
+      context: context,
+      position: const RelativeRect.fromLTRB(300, 300, 0, 0),
+      items: [
+        _statusMenuItem(s, StudentStatus.present, 'Присутствует'),
+        _statusMenuItem(s, StudentStatus.absent, 'Отсутствует'),
+        _statusMenuItem(s, StudentStatus.waiting, 'Ожидает'),
       ],
     );
   }
 
-  void _pickDate() async {
-    final p = await showDatePicker(
-      context: context,
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2030),
-      initialDate: date,
+  PopupMenuItem<StudentStatus> _statusMenuItem(
+    ExamStudentRow s,
+    StudentStatus status,
+    String label,
+  ) {
+    return PopupMenuItem(
+      value: status,
+      onTap: () => setState(() => s.status = status),
+      child: Text(label),
     );
-
-    if (p != null) setState(() => date = p);
   }
 
-  void _save() {
-    widget.exam.title = title.text;
-    widget.exam.group = selectedGroup;
-    widget.exam.teacher = selectedTeacher;
-    widget.exam.direction = direction.text;
-    widget.exam.date = date;
-    widget.exam.isFinished = isFinished;
-    widget.exam.students = marks;
+  Map<String, dynamic> _statusDisplay(StudentStatus status) {
+    switch (status) {
+      case StudentStatus.present:
+        return {
+          'label': 'Присутствует',
+          'color': const Color(0xFF2ECC8A),
+          'bg': const Color(0xFF2ECC8A).withOpacity(0.1),
+        };
+      case StudentStatus.absent:
+        return {
+          'label': 'Отсутствует',
+          'color': const Color(0xFFED6A2E),
+          'bg': const Color(0xFFED6A2E).withOpacity(0.1),
+        };
+      case StudentStatus.waiting:
+        return {
+          'label': 'Ожидает',
+          'color': const Color(0xFF8A9BB8),
+          'bg': const Color(0xFF8A9BB8).withOpacity(0.1),
+        };
+    }
+  }
 
-    widget.onSave();
+  Widget _statCard(IconData icon, String label, String value) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: const Color(0xFFED6A2E).withOpacity(0.08),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: const Color(0xFFED6A2E).withOpacity(0.15),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, size: 22, color: const Color(0xFFED6A2E)),
+            ),
+            const SizedBox(width: 14),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Colors.grey[500], letterSpacing: 0.4),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  value,
+                  style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: Color(0xFF1A2233)),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
-    Navigator.pop(context);
+  Widget _buildPagination() {
+    return Row(
+      children: [
+        _pgBtn(Icons.chevron_left, _currentPage > 1 ? () => setState(() => _currentPage--) : null),
+        const SizedBox(width: 4),
+        ...List.generate(_totalPages.clamp(0, 5), (i) {
+          final p = i + 1;
+          final active = p == _currentPage;
+          return Padding(
+            padding: const EdgeInsets.only(right: 4),
+            child: GestureDetector(
+              onTap: () => setState(() => _currentPage = p),
+              child: Container(
+                width: 32,
+                height: 32,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: active ? const Color(0xFFED6A2E) : Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: active ? const Color(0xFFED6A2E) : Colors.grey.withOpacity(0.25),
+                  ),
+                ),
+                child: Text(
+                  '$p',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: active ? Colors.white : Colors.black87,
+                  ),
+                ),
+              ),
+            ),
+          );
+        }),
+        _pgBtn(Icons.chevron_right, _currentPage < _totalPages ? () => setState(() => _currentPage++) : null),
+      ],
+    );
+  }
+
+  Widget _pgBtn(IconData icon, VoidCallback? onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 32,
+        height: 32,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.grey.withOpacity(0.25)),
+        ),
+        child: Icon(icon, size: 16, color: onTap == null ? Colors.grey[300] : Colors.black87),
+      ),
+    );
+  }
+
+  String _formatDate(DateTime d) {
+    const months = [
+      'января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
+      'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря',
+    ];
+    return '${d.day} ${months[d.month - 1]} ${d.year}';
+  }
+}
+
+class _ColH extends StatelessWidget {
+  final String text;
+  const _ColH(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFFED6A2E), letterSpacing: 0.3),
+    );
   }
 }

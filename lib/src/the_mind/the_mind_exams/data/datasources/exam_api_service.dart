@@ -1,56 +1,73 @@
 import 'package:dio/dio.dart';
+import 'package:srm/src/core/config/dio_module.dart';
 import 'package:srm/src/the_mind/the_mind_exams/data/models/exam_model.dart';
-import 'exam_dio_client.dart';
 
 class ExamApiService {
-  final Dio _dio = ExamDioClient().dio; // ✅ использует токен из интерсептора
-
-  // GET
-  Future<List<ExamModel>> getRequest(String path,
-      {Map<String, dynamic>? queryParams}) async {
+  final Dio _dio = DioConfig.client;
+  Future<List<ExamModel>> getExams() async {
     try {
-      final response = await _dio.get(path, queryParameters: queryParams);
-      final List data = response.data;
-      return data.map((e) => ExamModel.fromJson(e)).toList();
-    } on DioException catch (e) {
-      throw _handleError(e);
+      final response = await _dio.get("/exam/exams");
+
+      final data = response.data;
+
+      if (data is List) {
+        return data
+            .map((e) => ExamModel.fromJson(e as Map<String, dynamic>))
+            .toList();
+      }
+
+      if (data is Map && data["results"] is List) {
+        return (data["results"] as List)
+            .map((e) => ExamModel.fromJson(e as Map<String, dynamic>))
+            .toList();
+      }
+
+      throw Exception("Unknown API format: $data");
+    } catch (e) {
+      throw Exception("Exam GET error: $e");
     }
   }
 
-  // POST
-  Future<ExamModel> postRequest(String path, {Map<String, dynamic>? data}) async {
+  /// POST EXAM
+  Future<void> createExam({
+    required String title,
+    required String date,
+    required int group,
+  }) async {
     try {
-      final response = await _dio.post(path, data: data);
-      return ExamModel.fromJson(response.data);
-    } on DioException catch (e) {
-      throw _handleError(e);
+      final response = await _dio.post(
+        "/exam/exams/",
+        data: {"title": title, "date": date, "group": group},
+      );
+
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        throw Exception("Ошибка создания экзамена");
+      }
+    } catch (e) {
+      if (e is DioException) {
+        print("STATUS: ${e.response?.statusCode}");
+        print("DATA: ${e.response?.data}");
+      }
+
+      throw Exception("Exam POST error: $e");
     }
   }
 
-  // PUT
-  Future<ExamModel> putRequest(String path, {Map<String, dynamic>? data}) async {
+  /// DELETE EXAM
+  Future<void> deleteExam(int id) async {
     try {
-      final response = await _dio.put(path, data: data); // исправил POST → PUT
-      return ExamModel.fromJson(response.data);
-    } on DioException catch (e) {
-      throw _handleError(e);
-    }
-  }
+      final response = await _dio.delete("/exam/$id/");
 
-  // DELETE
-  Future<void> deleteRequest(String path) async {
-    try {
-      await _dio.delete(path);
-    } on DioException catch (e) {
-      throw _handleError(e);
-    }
-  }
+      if (response.statusCode != 200 && response.statusCode != 204) {
+        throw Exception("Ошибка удаления экзамена");
+      }
+    } catch (e) {
+      if (e is DioException) {
+        print("STATUS: ${e.response?.statusCode}");
+        print("DATA: ${e.response?.data}");
+      }
 
-  String _handleError(DioException e) {
-    if (e.response != null) {
-      return 'Server error: ${e.response?.statusCode}';
-    } else {
-      return 'Network error';
+      throw Exception("Exam DELETE error: $e");
     }
   }
 }
