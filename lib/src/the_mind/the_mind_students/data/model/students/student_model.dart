@@ -14,16 +14,20 @@ class StudentModel {
   final String joinedAt;
   final String createdAt;
 
-  final int? groupId;
+  // UUID строки вместо int!
+  final String? groupId;
   final String? groupName;
-  final String balance;
-
-  final int? teacherId;
+  final String? teacherId;
   final String? teacherName;
-
-  final int? courseId;
+  final String? courseId;
   final String? courseName;
 
+  // Финансовые поля
+  final String balance;
+  final String? groupPrice;
+  final String? discountAmount;
+  final String? finalPrice;
+  final String? paidAmount;
   final String? debtStatus;
 
   StudentModel({
@@ -48,18 +52,23 @@ class StudentModel {
     this.teacherName,
     this.courseId,
     this.courseName,
+    this.groupPrice,
+    this.discountAmount,
+    this.finalPrice,
+    this.paidAmount,
     this.debtStatus,
   });
 
   factory StudentModel.fromJson(Map<String, dynamic> json) {
+    // print('From json model $json');
     return StudentModel(
-      id: json["id"] ?? 0,
+      id: json["id"] as int? ?? 0,
       firstName: json["first_name"] as String?,
       lastName: json["last_name"] as String?,
       phone: json["phone"] as String?,
       parentPhone: json["parent_phone"] as String?,
       status: json["status"] as String? ?? "unknown",
-      statusDisplay: json["status_display"] as String? ?? "unknown",
+      statusDisplay: json["status_display"] as String? ?? "",
       birthDate: json["birth_date"] as String?,
       gender: json["gender"] as String?,
       district: json["district"] as int?,
@@ -67,15 +76,21 @@ class StudentModel {
       notes: json["notes"] as String?,
       joinedAt: json["joined_at"] as String? ?? "",
       createdAt: json["created_at"] as String? ?? "",
-      balance: json["balance"] as String? ?? "0",
-      groupId: json["group_id"] is int
-          ? json["group_id"]
-          : int.tryParse(json["group_id"].toString()),
-      groupName: json["group_name"] as String?,
-      teacherId: json["teacher_id"] as int?,
-      teacherName: json["teacher_name"] as String?,
-      courseId: json["course_id"] as int?,
+      balance: json["balance"]?.toString() ?? "0",
+
+      // UUID поля — просто String
+      groupId: json["group_id"] as String?,
+      groupName: json["group_name"] ?? '_____',
+      teacherId: json["teacher_id"] as String?,
+      teacherName: json["teacher_name"] ?? '_____',
+      courseId: json["course_id"] as String?,
       courseName: json["course_name"] as String?,
+
+      // Финансы
+      groupPrice: json["group_price"]?.toString(),
+      discountAmount: json["discount_amount"]?.toString(),
+      finalPrice: json["final_price"]?.toString(),
+      paidAmount: json["paid_amount"]?.toString(),
       debtStatus: json["debt_status"] as String?,
     );
   }
@@ -86,11 +101,13 @@ class StudentModel {
       "last_name": lastName,
       "phone": phone,
       "parent_phone": parentPhone,
+      "status": status,
       "birth_date": birthDate,
       "gender": gender,
       "district": district,
       "source": source,
       "notes": notes,
+      "group_id": groupId,
     };
   }
 }

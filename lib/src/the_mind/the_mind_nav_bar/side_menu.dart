@@ -176,7 +176,7 @@ class _SideMenuState extends State<SideMenu> {
     final isSelected = widget.selectedIndex == index;
 
     return GestureDetector(
-      onTap: () {
+      onTap: isSelected == true ? null : () {
         widget.onTap(index);
         widget.onStudentSubTap(null);
       },

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:srm/src/the_mind/the_mind_group/data/models/group_model.dart';
+import 'package:srm/src/the_mind/the_mind_group/presentation/cubit/group/group_cubit.dart';
 import 'package:srm/src/the_mind/the_mind_group/presentation/group_details/presentation/group_details.dart';
 
 class GroupRow extends StatelessWidget {
@@ -24,15 +26,27 @@ class GroupRow extends StatelessWidget {
     return colors[(group.teacherName ?? '').length % colors.length];
   }
 
-  // weekDays: [1,2,3] → "Пн-Ср-Пт"
+  // ЯНГИси — ТЎҒРИ (String parse қиламиз)
   String get _daysDisplay {
     final days = group.weekDays;
-    if (days == null || days.isEmpty) return '—';
-    const map = {1: 'Пн', 2: 'Вт', 3: 'Ср', 4: 'Чт', 5: 'Пт', 6: 'Сб', 7: 'Вс'};
-    if (days.first is int) {
-      return days.map((d) => map[d as int] ?? '$d').join('-');
-    }
-    return days.map((d) => '$d').join('-');
+    if (days == null || days.trim().isEmpty) return '—';
+
+    const map = {
+      '1': 'Пн',
+      '2': 'Вт',
+      '3': 'Ср',
+      '4': 'Чт',
+      '5': 'Пт',
+      '6': 'Сб',
+      '7': 'Вс',
+    };
+
+    // "1,2,3" ёки "1-2-3" форматини parse қиламиз
+    final parts = days.split(RegExp(r'[,\-\s]+'));
+    return parts
+        .map((d) => map[d.trim()] ?? d.trim())
+        .where((d) => d.isNotEmpty)
+        .join('-');
   }
 
   // "10:00:00" → "10:00"
@@ -55,17 +69,22 @@ class GroupRow extends StatelessWidget {
 
     return InkWell(
       onTap: () {
-            Navigator.push(
+        Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => GroupDetails(),
+            builder: (_) => BlocProvider.value(
+              value: context.read<GroupCubit>(),
+              child: GroupDetails(groupId: group.id!),
+            ),
           ),
         );
       },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
         decoration: BoxDecoration(
-          border: Border(bottom: BorderSide(color: Colors.grey.withOpacity(0.08))),
+          border: Border(
+            bottom: BorderSide(color: Colors.grey.withOpacity(0.08)),
+          ),
         ),
         child: Row(
           children: [
@@ -77,7 +96,11 @@ class GroupRow extends StatelessWidget {
                 children: [
                   Text(
                     group.name ?? '—',
-                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF1A2233)),
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF1A2233),
+                    ),
                   ),
                 ],
               ),
@@ -93,14 +116,21 @@ class GroupRow extends StatelessWidget {
                     backgroundColor: _avatarColor.withOpacity(0.15),
                     child: Text(
                       _initials,
-                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: _avatarColor),
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: _avatarColor,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 10),
                   Flexible(
                     child: Text(
                       group.teacherName ?? '—',
-                      style: const TextStyle(fontSize: 13, color: Color(0xFF1A2233)),
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: Color(0xFF1A2233),
+                      ),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
@@ -118,7 +148,10 @@ class GroupRow extends StatelessWidget {
                     children: [
                       Text(
                         '$students/$capacity',
-                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                       const SizedBox(width: 8),
                       Text(
@@ -126,7 +159,9 @@ class GroupRow extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: isFull ? const Color(0xFFED6A2E) : Colors.grey[500],
+                          color: isFull
+                              ? const Color(0xFFED6A2E)
+                              : Colors.grey[500],
                         ),
                       ),
                     ],
@@ -138,7 +173,9 @@ class GroupRow extends StatelessWidget {
                       value: fillPercent,
                       minHeight: 5,
                       backgroundColor: Colors.grey.withOpacity(0.15),
-                      valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFED6A2E)),
+                      valueColor: const AlwaysStoppedAnimation<Color>(
+                        Color(0xFFED6A2E),
+                      ),
                     ),
                   ),
                 ],
@@ -148,20 +185,29 @@ class GroupRow extends StatelessWidget {
             // Дни
             Expanded(
               flex: 2,
-              child: Text(_daysDisplay, style: const TextStyle(fontSize: 13, color: Color(0xFF1A2233))),
+              child: Text(
+                _daysDisplay,
+                style: const TextStyle(fontSize: 13, color: Color(0xFF1A2233)),
+              ),
             ),
 
             // Время
             Expanded(
               flex: 2,
-              child: Text(_timeDisplay, style: const TextStyle(fontSize: 13, color: Color(0xFF1A2233))),
+              child: Text(
+                _timeDisplay,
+                style: const TextStyle(fontSize: 13, color: Color(0xFF1A2233)),
+              ),
             ),
 
             // Уровень — берём из модели напрямую
             Expanded(
               flex: 1,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFF8F9FB),
                   borderRadius: BorderRadius.circular(8),
@@ -169,7 +215,11 @@ class GroupRow extends StatelessWidget {
                 ),
                 child: Text(
                   group.levelDisplay ?? group.level ?? '—',
-                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF1A2233)),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF1A2233),
+                  ),
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -179,7 +229,8 @@ class GroupRow extends StatelessWidget {
             Expanded(
               flex: 1,
               child: Text(
-                group.roomName ?? (group.room != null ? '${group.room}' : 'Online'),
+                group.roomName ??
+                    (group.room != null ? '${group.room}' : 'Online'),
                 style: TextStyle(fontSize: 13, color: Colors.grey[700]),
               ),
             ),

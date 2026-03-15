@@ -8,22 +8,19 @@ class StudentCubit extends Cubit<StudentState> {
   StudentCubit({required this.repository}) : super(StudentInitial());
 
   Future<void> getStudents() async {
-    if (isClosed) return; // защита на случай, если Cubit уже закрыт
+    if (isClosed) return;
     emit(StudentLoading());
-
     try {
       final students = await repository.getStudents();
-
-      if (isClosed) return; // защита после await
+      if (isClosed) return;
       emit(StudentLoaded(students: students));
     } catch (e) {
-      if (isClosed) return; // защита на случай ошибки
+      if (isClosed) return;
       emit(StudentError(message: e.toString()));
     }
   }
 
   Future<void> addStudent({
-    int id = 0,
     required String firstName,
     required String lastName,
     required String phone,
@@ -32,17 +29,18 @@ class StudentCubit extends Cubit<StudentState> {
     required String birthDate,
     required String gender,
     required int district,
+    required String groupName,
+    required String teacherName,
     required String source,
     String? notes,
     String? groupId,
   }) async {
     if (isClosed) return;
-
     emit(StudentLoading());
-
     try {
-      await repository.sendPost(
-        id: id,
+      await repository.createStudent(
+        groupName: groupName,
+        teacherName: teacherName,
         firstName: firstName,
         lastName: lastName,
         phone: phone,
@@ -55,12 +53,9 @@ class StudentCubit extends Cubit<StudentState> {
         notes: notes,
         groupId: groupId,
       );
-
       if (isClosed) return;
-      final students = await repository.getStudents();
-
-      if (isClosed) return;
-      emit(StudentLoaded(students: students));
+      // После добавления обновляем список
+      await getStudents();
     } catch (e) {
       if (isClosed) return;
       emit(StudentError(message: e.toString()));

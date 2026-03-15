@@ -16,215 +16,323 @@ class AddPaymentDialogResponsive extends StatefulWidget {
 
 class _AddPaymentDialogResponsiveState
     extends State<AddPaymentDialogResponsive> {
-  void _showError(BuildContext context, String msg) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
-  }
-
   String search = "";
   StudentModel? selectedStudent;
-  String? selectedPaymentMethod = "cash";
+  String selectedPaymentMethod = "cash";
+  bool _isLoading = false;
 
   final amountController = TextEditingController();
   DateTime? selectedDate;
 
   @override
+  void dispose() {
+    amountController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    // Валидация
+    if (selectedStudent == null) {
+      _showError("Talabani tanlang");
+      return;
+    }
+    if (selectedStudent!.groupId == null || selectedStudent!.groupId!.isEmpty) {
+      _showError("Bu talabada guruh yo'q");
+      return;
+    }
+    if (amountController.text.trim().isEmpty) {
+      _showError("Summani kiriting");
+      return;
+    }
+    if (selectedDate == null) {
+      _showError("Sanani tanlang");
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    final d = selectedDate!;
+    final paymentMonth =
+        "${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}";
+
+    try {
+      await context.read<PaymentCubit>().createPayment(
+        student: selectedStudent!.id,
+        group: selectedStudent!.groupId!,       // ← UUID String
+        administrator: "3fa85f64-5717-4562-b3fc-2c963f66afa6", // ← токендан олиш керак
+        amount: amountController.text.trim(),
+        payWith: selectedPaymentMethod,
+        paymentMonth: paymentMonth,
+        checkGiven: true,
+      );
+
+      if (!mounted) return;
+
+      // PaymentSuccess эмитланди — dialog ёп
+      final state = context.read<PaymentCubit>().state;
+      if (state is PaymentSuccess) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("To'lov muvaffaqiyatli saqlandi!"),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.pop(context);
+      } else if (state is PaymentError) {
+        _showError(state.message);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      _showError(e.toString());
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  void _showError(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg), backgroundColor: Colors.red),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     final filtered = widget.students.where((s) {
-      final full = "${s.lastName}${s.firstName} ${s.phone} ${s.groupName}"
-          .toLowerCase();
+      final full =
+          "${s.lastName ?? ''} ${s.firstName ?? ''} ${s.phone ?? ''} ${s.groupName ?? ''}"
+              .toLowerCase();
       return full.contains(search.toLowerCase());
     }).toList();
 
     return Dialog(
       backgroundColor: Colors.white,
       insetPadding: const EdgeInsets.all(20),
-      child: SingleChildScrollView(
-        child: Container(
-          width: 500,
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                "To‘lov kiritish",
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: 20),
-
-              // Поисковик
-              TextField(
-                decoration: InputDecoration(
-                  prefixIcon: const Icon(Icons.search),
-                  hintText: "Qidirish...",
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+      child: BlocListener<PaymentCubit, PaymentState>(
+        listener: (context, state) {
+          // BlocListener — фақат кузатиш учун, submit'да ҳам handle қиламиз
+          if (state is PaymentError) {
+            _showError(state.message);
+          }
+        },
+        child: SingleChildScrollView(
+          child: Container(
+            width: 500,
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ── TITLE ──
+                const Center(
+                  child: Text(
+                    "To'lov kiritish",
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
                   ),
                 ),
-                onChanged: (v) => setState(() => search = v),
-              ),
+                const SizedBox(height: 20),
 
-              const SizedBox(height: 16),
-
-              // Список учеников
-              Container(
-                height: 150,
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.black12),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: ListView.builder(
-                  itemCount: filtered.length,
-                  itemBuilder: (_, i) {
-                    final s = filtered[i];
-                    return RadioListTile<StudentModel>(
-                      value: s,
-                      groupValue: selectedStudent,
-                      onChanged: (v) => setState(() => selectedStudent = v),
-                      title: Text(
-                        "${s.lastName}${s.firstName} — ${s.groupName}",
-                      ),
-                      subtitle: Text(s.phone.toString()),
-                    );
-                  },
-                ),
-              ),
-
-              const SizedBox(height: 20),
-
-              // Метод оплаты
-              DropdownButtonFormField<String>(
-                decoration: InputDecoration(
-                  labelText: "To‘lov turi",
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                // ── QIDIRUV ──
+                TextField(
+                  decoration: InputDecoration(
+                    prefixIcon: const Icon(Icons.search),
+                    hintText: "Talabani qidirish...",
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12)),
                   ),
+                  onChanged: (v) => setState(() => search = v),
                 ),
-                value: selectedPaymentMethod,
-                items: const [
-                  DropdownMenuItem(value: "cash", child: Text("Naqd")),
-                  DropdownMenuItem(value: "card", child: Text("Karta")),
-                  DropdownMenuItem(value: "transfer", child: Text("O'tkazma")),
-                ],
-                onChanged: (v) => setState(() => selectedPaymentMethod = v),
-              ),
+                const SizedBox(height: 12),
 
-              const SizedBox(height: 20),
-
-              // Сумма
-              TextField(
-                controller: amountController,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                  labelText: "To‘lov summasi",
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 20),
-
-              // Дата платежа
-              InkWell(
-                onTap: () async {
-                  final now = DateTime.now();
-                  final date = await showDatePicker(
-                    context: context,
-                    firstDate: DateTime(2020),
-                    lastDate: DateTime(now.year + 1),
-                    initialDate: now,
-                  );
-                  if (date != null) {
-                    setState(() => selectedDate = date);
-                  }
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 16,
-                  ),
+                // ── TALABALAR RO'YXATI ──
+                Container(
+                  height: 160,
                   decoration: BoxDecoration(
+                    border: Border.all(color: Colors.black12),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.black26),
                   ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.date_range),
-                      const SizedBox(width: 8),
-                      Text(
-                        selectedDate == null
-                            ? "To‘lov sanasi"
-                            : "${selectedDate!.year}-${selectedDate!.month}-${selectedDate!.day}",
-                      ),
-                    ],
-                  ),
+                  child: filtered.isEmpty
+                      ? const Center(
+                          child: Text("Talaba topilmadi",
+                              style: TextStyle(color: Colors.grey)))
+                      : ListView.builder(
+                          itemCount: filtered.length,
+                          itemBuilder: (_, i) {
+                            final s = filtered[i];
+                            final isSelected = selectedStudent?.id == s.id;
+                            return ListTile(
+                              onTap: () =>
+                                  setState(() => selectedStudent = s),
+                              selected: isSelected,
+                              selectedTileColor:
+                                  const Color(0xFFED6A2E).withOpacity(0.08),
+                              leading: CircleAvatar(
+                                backgroundColor: isSelected
+                                    ? const Color(0xFFED6A2E)
+                                    : Colors.grey.shade200,
+                                child: Text(
+                                  (s.firstName ?? '?')[0].toUpperCase(),
+                                  style: TextStyle(
+                                    color: isSelected
+                                        ? Colors.white
+                                        : Colors.black54,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                              title: Text(
+                                "${s.lastName ?? ''} ${s.firstName ?? ''}",
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w500),
+                              ),
+                              subtitle: Text(
+                                "${s.phone ?? ''} • ${s.groupName ?? 'Guruhsiz'}",
+                                style: const TextStyle(fontSize: 12),
+                              ),
+                              trailing: isSelected
+                                  ? const Icon(Icons.check_circle,
+                                      color: Color(0xFFED6A2E))
+                                  : null,
+                            );
+                          },
+                        ),
                 ),
-              ),
 
-              const SizedBox(height: 24),
-
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text("Bekor qilish"),
-                  ),
-                  const SizedBox(width: 12),
-                  ElevatedButton(
-                    onPressed: () async {
-                      if (selectedStudent == null) {
-                        _showError(context, "Talabani tanlang");
-                        return;
-                      }
-                      if (selectedStudent!.groupId == null) {
-                        _showError(context, "Bu talabada guruh yo'q");
-                        return;
-                      }
-                      if (selectedPaymentMethod == null) {
-                        _showError(context, "To'lov turini tanlang");
-                        return;
-                      }
-                      if (amountController.text.isEmpty) {
-                        _showError(context, "Summani kiriting");
-                        return;
-                      }
-                      if (selectedDate == null) {
-                        _showError(context, "Sanani tanlang");
-                        return;
-                      }
-
-                      final cubit = context.read<PaymentCubit>();
-                      final d = selectedDate!;
-                      final paymentMonth =
-                          "${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}";
-
-                      await cubit.createPayment(
-                        student: selectedStudent!.id,
-                        group: selectedStudent!.groupId!,
-                        administrator: "1",
-                        amount: amountController.text,
-                        payWith: selectedPaymentMethod!,
-                        paymentMonth: paymentMonth,
-                        checkGiven: true,
-                      );
-
-                      if (!mounted) return;
-                      final state = cubit.state;
-                      if (state is PaymentError) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(state.message)),
-                        );
-                        return;
-                      }
-                      Navigator.pop(context);
-                    },
-                    child: const Text("Saqlash"),
+                // ── БАЛАНС ──
+                if (selectedStudent != null) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.black12),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.account_balance_wallet_outlined,
+                            size: 18, color: Colors.grey),
+                        const SizedBox(width: 8),
+                        Text(
+                          "Joriy balans: ${selectedStudent!.balance} so'm",
+                          style: const TextStyle(
+                              fontSize: 13, color: Colors.black54),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
-              ),
-            ],
+
+                const SizedBox(height: 20),
+
+                // ── TO'LOV TURI ──
+                DropdownButtonFormField<String>(
+                  decoration: InputDecoration(
+                    labelText: "To'lov turi",
+                    prefixIcon: const Icon(Icons.payment_outlined),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                  ),
+                  value: selectedPaymentMethod,
+                  items: const [
+                    DropdownMenuItem(value: "cash", child: Text("Naqd pul")),
+                    DropdownMenuItem(value: "card", child: Text("Karta")),
+                    DropdownMenuItem(
+                        value: "transfer", child: Text("O'tkazma")),
+                  ],
+                  onChanged: (v) =>
+                      setState(() => selectedPaymentMethod = v ?? "cash"),
+                ),
+
+                const SizedBox(height: 16),
+
+                // ── SUMMA ──
+                TextField(
+                  controller: amountController,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: "To'lov summasi (so'm)",
+                    prefixIcon: const Icon(Icons.monetization_on_outlined),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                // ── SANA ──
+                InkWell(
+                  onTap: () async {
+                    final now = DateTime.now();
+                    final date = await showDatePicker(
+                      context: context,
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime(now.year + 1),
+                      initialDate: now,
+                    );
+                    if (date != null) setState(() => selectedDate = date);
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 16),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.black26),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.date_range, color: Colors.black54),
+                        const SizedBox(width: 8),
+                        Text(
+                          selectedDate == null
+                              ? "To'lov sanasini tanlang"
+                              : "${selectedDate!.year}-${selectedDate!.month.toString().padLeft(2, '0')}-${selectedDate!.day.toString().padLeft(2, '0')}",
+                          style: TextStyle(
+                            color: selectedDate == null
+                                ? Colors.black45
+                                : Colors.black87,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 28),
+
+                // ── BUTTONS ──
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed:
+                          _isLoading ? null : () => Navigator.pop(context),
+                      child: const Text("Bekor qilish"),
+                    ),
+                    const SizedBox(width: 12),
+                    ElevatedButton(
+                      onPressed: _isLoading ? null : _submit,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFED6A2E),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 28, vertical: 14),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: _isLoading
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: Colors.white),
+                            )
+                          : const Text("Saqlash",
+                              style: TextStyle(color: Colors.white)),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),

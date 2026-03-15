@@ -205,7 +205,7 @@ class _WebCustomBottomNavState extends State<WebCustomBottomNav> {
             selectedIndex: selectedIndex,
             onTap: (index) {
               Navigator.pop(context); // закрываем drawer
-              _onMenuTap(index);
+              selectedIndex != index ? _onMenuTap(index) : () {};
             },
             onStudentSubTap: (int? sub) {
               Navigator.pop(context);
@@ -247,11 +247,12 @@ class _WebCustomBottomNavState extends State<WebCustomBottomNav> {
             selectedIndex: selectedIndex,
             onTap: _onMenuTap,
             onStudentSubTap: (int? sub) {
-              setState(() => studentSubIndex = sub);
-
+              if (sub != selectedIndex){
+                setState(() => studentSubIndex = sub);
               _contentNavKey.currentState?.pushReplacement(
                 MaterialPageRoute(builder: (_) => _buildScreen()),
               );
+              }
             },
           ),
           Expanded(
@@ -281,14 +282,16 @@ class _WebCustomBottomNavState extends State<WebCustomBottomNav> {
 
   /// 🔥 теперь обновляем вложенный navigator
   void _onMenuTap(int index) {
-    setState(() {
-      selectedIndex = index;
-      if (index != 2) studentSubIndex = null;
-    });
+    if (selectedIndex != index) {
+      setState(() {
+        selectedIndex = index;
+        if (index != 2) studentSubIndex = null;
+      });
 
-    _contentNavKey.currentState?.pushReplacement(
-      MaterialPageRoute(builder: (_) => _buildScreen()),
-    );
+      _contentNavKey.currentState?.pushReplacement(
+        MaterialPageRoute(builder: (_) => _buildScreen()),
+      );
+    }
   }
 
   void pushInner(Widget page) {

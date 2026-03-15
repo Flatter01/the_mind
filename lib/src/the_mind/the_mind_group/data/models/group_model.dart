@@ -3,9 +3,9 @@ class GroupModel {
   final String? name;
   final String? level;
   final String? levelDisplay;
-  final String? teacher; // если приходит строка
+  final String? teacher;      // UUID String
   final String? teacherName;
-  final List<dynamic>? weekDays;
+  final String? weekDays;     // API "string" қайтаради
   final int? studentCount;
   final int? room;
   final String? roomName;
@@ -17,7 +17,8 @@ class GroupModel {
   final bool? isActive;
   final String? createdAt;
 
-  GroupModel({
+
+  const GroupModel({
     this.id,
     this.name,
     this.level,
@@ -39,39 +40,36 @@ class GroupModel {
 
   factory GroupModel.fromJson(Map<String, dynamic> json) {
     return GroupModel(
-      id: json['id'],
-      name: json['name'],
-      level: json['level'],
-      levelDisplay: json['level_display'],
-      teacher: json['teacher'] is String ? json['teacher'] : null,
-      teacherName: json['teacher_name'],
-      weekDays: json['week_days'] is List ? List<dynamic>.from(json['week_days']) : null,
-      studentCount: json['student_count'],
-      room: json['room'],
-      roomName: json['room_name'],
-      price: json['price'],
-      startDate: json['start_date'],
-      endDate: json['end_date'],
-      startTime: json['start_time'],
-      endTime: json['end_time'],
-      isActive: json['is_active'],
-      createdAt: json['created_at'],
+      id: json['id'] as int?,
+      name: json['name'] as String?,
+      level: json['level'] as String?,
+      levelDisplay: json['level_display'] as String?,
+      teacher: json['teacher'] as String?,       // UUID
+      teacherName: json['teacher_name'] as String?,
+      weekDays: json['week_days']?.toString(),   // String сақла
+      studentCount: json['student_count'] as int?,
+      room: json['room'] as int?,
+      roomName: json['room_name'] as String?,
+      price: json['price']?.toString(),
+      startDate: json['start_date'] as String?,
+      endDate: json['end_date'] as String?,
+      startTime: json['start_time'] as String?,
+      endTime: json['end_time'] as String?,
+      isActive: json['is_active'] as bool?,
+      createdAt: json['created_at'] as String?,
     );
   }
 
-  Map<String, dynamic> toJson() {
-    return {
-      "name": name,
-      "level": level,
-      "teacher": teacher,
-      "week_days": weekDays,
-      "room": room,
-      "price": price,
-      "start_date": startDate,
-      "end_date": endDate,
-      "start_time": startTime,
-      "end_time": endTime,
-      "is_active": isActive,
-    };
-  }
+  Map<String, dynamic> toJson() => {
+        "name": name,
+        "level": level,
+        "teacher": teacher,
+        "room": room,
+        "price": price,
+        "start_date": startDate,
+        "end_date": endDate,
+        "start_time": startTime,
+        "end_time": endTime,
+        "is_active": isActive,
+      };
 }

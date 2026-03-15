@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:srm/src/the_mind/the_mind_group/data/models/group_model.dart';
-import 'package:srm/src/the_mind/the_mind_group/presentation/cubit/payment/group_cubit.dart';
-import 'package:srm/src/the_mind/the_mind_group/presentation/cubit/payment/group_state.dart';
+import 'package:srm/src/the_mind/the_mind_group/presentation/cubit/group/group_cubit.dart';
+import 'package:srm/src/the_mind/the_mind_group/presentation/cubit/group/group_state.dart';
 import 'package:srm/src/the_mind/the_mind_group/presentation/group_details/presentation/create_group_page.dart';
 import 'package:srm/src/the_mind/the_mind_group/presentation/the_mind_groups/widgets/filter/filter_dropdown.dart';
 import 'package:srm/src/the_mind/the_mind_group/presentation/the_mind_groups/widgets/groups_table.dart';
