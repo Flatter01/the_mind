@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:srm/src/the_mind/the_mind_students/data/datasources/student_api_service.dart';
-import 'package:srm/src/the_mind/the_mind_students/data/model/students/history_model.dart';
 import 'package:srm/src/the_mind/the_mind_students/data/model/students/student_model.dart';
 import 'package:srm/src/the_mind/the_mind_students/presentation/student/cubit/history/history_cubit.dart';
+import 'package:srm/src/the_mind/the_mind_students/presentation/student/cubit/journal/journal_cubit.dart';
+import 'package:srm/src/the_mind/the_mind_students/presentation/student/cubit/journal/journal_state.dart';
 import 'package:srm/src/the_mind/the_mind_students/presentation/student/widgets/students_details/history_item.dart';
 import 'package:srm/src/the_mind/the_mind_students/presentation/student/widgets/students_details/info_field.dart';
 import 'package:srm/src/the_mind/the_mind_students/presentation/student/widgets/students_details/profile_header.dart';
@@ -42,17 +43,20 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
     },
   ];
 
-  final List<Map<String, dynamic>> grades = const [
-    {"label": "5", "subject": "Вёрстка (HTML)", "color": Color(0xFF2ECC8A)},
-    {"label": "5-", "subject": "CSS Grid Test", "color": Color(0xFFED6A2E)},
-    {"label": "5", "subject": "Анимации", "color": Color(0xFF2ECC8A)},
-    {"label": "4", "subject": "JS Basic", "color": Color(0xFFED6A2E)},
-  ];
-
   @override
   void initState() {
     super.initState();
     _discountCtrl = TextEditingController(text: _discountAmount.toString());
+
+    // Загружаем журнал — JournalCubit уже в дереве через main.dart
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final s = widget.student;
+      context.read<JournalCubit>().loadJournal(
+            groupId: int.tryParse(s.groupId ?? '') ?? 0,
+            lessonDate: DateTime.now().toIso8601String().substring(0, 10),
+            teacherId: s.teacherId?.toString() ?? '',
+          );
+    });
   }
 
   @override
@@ -94,7 +98,6 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
     });
   }
 
-  // Маппинг цвета из API
   Color _colorFromApi(String color) {
     switch (color.toLowerCase()) {
       case 'orange':
@@ -111,7 +114,6 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
     }
   }
 
-  // Маппинг иконки из API
   IconData _iconFromApi(String icon) {
     switch (icon.toLowerCase()) {
       case 'payment':
@@ -125,6 +127,15 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
       default:
         return Icons.info_outline;
     }
+  }
+
+  // Цвет по оценке
+  Color _scoreColor(int? score) {
+    if (score == null) return const Color(0xFF8A9BB8);
+    if (score >= 5) return const Color(0xFF2ECC8A);
+    if (score >= 4) return const Color(0xFF6B7FD4);
+    if (score >= 3) return Colors.orange;
+    return Colors.redAccent;
   }
 
   void _openEditStudent(StudentModel student) {
@@ -151,45 +162,17 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
                       controller: firstNameCtrl,
                       decoration: const InputDecoration(labelText: "Имя"),
                     ),
-
                     const SizedBox(height: 10),
-
                     TextField(
                       controller: lastNameCtrl,
                       decoration: const InputDecoration(labelText: "Фамилия"),
                     ),
-
                     const SizedBox(height: 10),
-
                     TextField(
                       controller: phoneCtrl,
                       decoration: const InputDecoration(labelText: "Телефон"),
                     ),
-
                     const SizedBox(height: 10),
-
-                    DropdownButtonFormField<String>(
-                      value: status,
-                      decoration: const InputDecoration(labelText: "Статус"),
-                      items: const [
-                        DropdownMenuItem(
-                          value: "active",
-                          child: Text("Активный"),
-                        ),
-                        DropdownMenuItem(
-                          value: "inactive",
-                          child: Text("Не активный"),
-                        ),
-                      ],
-                      onChanged: (v) {
-                        setState(() {
-                          status = v!;
-                        });
-                      },
-                    ),
-
-                    const SizedBox(height: 10),
-
                     DropdownButtonFormField<String>(
                       value: ["active", "inactive"].contains(status)
                           ? status
@@ -211,7 +194,7 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
                         });
                       },
                     ),
-
+                    const SizedBox(height: 10),
                     DropdownButtonFormField<String>(
                       value: ["Flutter", "Frontend", "Backend"].contains(group)
                           ? group
@@ -242,13 +225,11 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
               );
             },
           ),
-
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
               child: const Text("Отмена"),
             ),
-
             ElevatedButton(
               onPressed: () {
                 final updatedStudent = student.copyWith(
@@ -258,10 +239,7 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
                   status: status,
                   groupName: group,
                 );
-
-                // тут вызываешь API update
                 // context.read<StudentCubit>().updateStudent(updatedStudent);
-
                 Navigator.pop(context);
               },
               child: const Text("Сохранить"),
@@ -445,9 +423,8 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
                                                           ),
                                                         ),
                                                         borderRadius:
-                                                            BorderRadius.circular(
-                                                              8,
-                                                            ),
+                                                            BorderRadius
+                                                                .circular(8),
                                                       ),
                                                       child: TextField(
                                                         controller:
@@ -465,23 +442,23 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
                                                           fontWeight:
                                                               FontWeight.w700,
                                                         ),
-                                                        decoration: const InputDecoration(
+                                                        decoration:
+                                                            const InputDecoration(
                                                           border:
                                                               InputBorder.none,
                                                           contentPadding:
-                                                              EdgeInsets.symmetric(
-                                                                horizontal: 10,
-                                                                vertical: 8,
-                                                              ),
+                                                              EdgeInsets
+                                                                  .symmetric(
+                                                            horizontal: 10,
+                                                            vertical: 8,
+                                                          ),
                                                           suffixText: 'Сум',
                                                           suffixStyle:
                                                               TextStyle(
-                                                                fontWeight:
-                                                                    FontWeight
-                                                                        .w600,
-                                                                color:
-                                                                    Colors.grey,
-                                                              ),
+                                                            fontWeight:
+                                                                FontWeight.w600,
+                                                            color: Colors.grey,
+                                                          ),
                                                         ),
                                                         onSubmitted: (_) =>
                                                             _saveDiscount(),
@@ -499,24 +476,23 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
                                                           0xFF2ECC8A,
                                                         ).withOpacity(0.12),
                                                         borderRadius:
-                                                            BorderRadius.circular(
-                                                              8,
-                                                            ),
+                                                            BorderRadius
+                                                                .circular(8),
                                                       ),
                                                       child: const Icon(
                                                         Icons.check,
                                                         size: 16,
-                                                        color: Color(
-                                                          0xFF2ECC8A,
-                                                        ),
+                                                        color:
+                                                            Color(0xFF2ECC8A),
                                                       ),
                                                     ),
                                                   ),
                                                   const SizedBox(width: 4),
                                                   GestureDetector(
                                                     onTap: () => setState(
-                                                      () => _editingDiscount =
-                                                          false,
+                                                      () =>
+                                                          _editingDiscount =
+                                                              false,
                                                     ),
                                                     child: Container(
                                                       width: 32,
@@ -525,9 +501,8 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
                                                         color: Colors.grey
                                                             .withOpacity(0.1),
                                                         borderRadius:
-                                                            BorderRadius.circular(
-                                                              8,
-                                                            ),
+                                                            BorderRadius
+                                                                .circular(8),
                                                       ),
                                                       child: Icon(
                                                         Icons.close,
@@ -561,27 +536,28 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
                                                             FontWeight.w800,
                                                         color:
                                                             _discountAmount > 0
-                                                            ? const Color(
-                                                                0xFF2ECC8A,
-                                                              )
-                                                            : Colors.grey[400],
+                                                                ? const Color(
+                                                                    0xFF2ECC8A,
+                                                                  )
+                                                                : Colors
+                                                                    .grey[400],
                                                       ),
                                                     ),
                                                     const SizedBox(width: 8),
                                                     Container(
                                                       padding:
-                                                          const EdgeInsets.symmetric(
-                                                            horizontal: 8,
-                                                            vertical: 3,
-                                                          ),
+                                                          const EdgeInsets
+                                                              .symmetric(
+                                                        horizontal: 8,
+                                                        vertical: 3,
+                                                      ),
                                                       decoration: BoxDecoration(
                                                         color: const Color(
                                                           0xFFED6A2E,
                                                         ).withOpacity(0.08),
                                                         borderRadius:
-                                                            BorderRadius.circular(
-                                                              6,
-                                                            ),
+                                                            BorderRadius
+                                                                .circular(6),
                                                         border: Border.all(
                                                           color: const Color(
                                                             0xFFED6A2E,
@@ -683,7 +659,8 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
                                         vertical: 8,
                                       ),
                                       decoration: BoxDecoration(
-                                        color: Colors.orange.withOpacity(0.08),
+                                        color:
+                                            Colors.orange.withOpacity(0.08),
                                         borderRadius: BorderRadius.circular(8),
                                       ),
                                       child: const Row(
@@ -794,100 +771,233 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
 
                             const SizedBox(height: 16),
 
-                            // Академические успехи
-                            SectionCard(
-                              title: 'Академические успехи',
-                              trailing: TextButton(
-                                onPressed: () {},
-                                child: const Text(
-                                  'Детальный отчет',
-                                  style: TextStyle(
-                                    color: Color(0xFFED6A2E),
-                                    fontSize: 13,
-                                  ),
-                                ),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const SizedBox(height: 16),
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: ScoreMetric(
-                                          label: 'ДОМАШНИЕ\nЗАДАНИЯ',
-                                          score: 4.9,
-                                        ),
+                            // ── Академические успехи — данные из JournalCubit ──
+                            BlocBuilder<JournalCubit, JournalState>(
+                              builder: (context, journalState) {
+                                // Запись текущего студента
+                                final record = journalState is JournalLoaded
+                                    ? journalState.records
+                                        .where((r) => r.studentId == s.id)
+                                        .firstOrNull
+                                    : null;
+
+                                // Средние по группе для ScoreMetric
+                                double avgHw = 0;
+                                double avgClass = 0;
+                                int countHw = 0;
+                                int countClass = 0;
+                                if (journalState is JournalLoaded) {
+                                  for (final r in journalState.records) {
+                                    if (r.homeworkScore != null) {
+                                      avgHw += r.homeworkScore!;
+                                      countHw++;
+                                    }
+                                    if (r.classScore != null) {
+                                      avgClass += r.classScore!;
+                                      countClass++;
+                                    }
+                                  }
+                                  if (countHw > 0) avgHw /= countHw;
+                                  if (countClass > 0) avgClass /= countClass;
+                                }
+
+                                // grades — строим из API или показываем заглушки
+                                final grades = record != null
+                                    ? <Map<String, dynamic>>[
+                                        {
+                                          "label":
+                                              record.classScore?.toString() ??
+                                                  '—',
+                                          "subject": "Оценка за урок",
+                                          "color":
+                                              _scoreColor(record.classScore),
+                                        },
+                                        {
+                                          "label":
+                                              record.homeworkScore?.toString() ??
+                                                  '—',
+                                          "subject": "Домашнее задание",
+                                          "color": _scoreColor(
+                                              record.homeworkScore),
+                                        },
+                                        {
+                                          "label":
+                                              record.attendance == 'present'
+                                                  ? '✓'
+                                                  : '✗',
+                                          "subject": "Посещаемость",
+                                          "color":
+                                              record.attendance == 'present'
+                                                  ? const Color(0xFF2ECC8A)
+                                                  : Colors.redAccent,
+                                        },
+                                      ]
+                                    : <Map<String, dynamic>>[
+                                        {
+                                          "label": "—",
+                                          "subject": "Оценка за урок",
+                                          "color": const Color(0xFF8A9BB8),
+                                        },
+                                        {
+                                          "label": "—",
+                                          "subject": "Домашнее задание",
+                                          "color": const Color(0xFF8A9BB8),
+                                        },
+                                        {
+                                          "label": "—",
+                                          "subject": "Посещаемость",
+                                          "color": const Color(0xFF8A9BB8),
+                                        },
+                                      ];
+
+                                return SectionCard(
+                                  title: 'Академические успехи',
+                                  trailing: TextButton(
+                                    onPressed: () {},
+                                    child: const Text(
+                                      'Детальный отчет',
+                                      style: TextStyle(
+                                        color: Color(0xFFED6A2E),
+                                        fontSize: 13,
                                       ),
-                                      Expanded(
-                                        child: ScoreMetric(
-                                          label: 'ТЕСТЫ И ЭКЗАМЕНЫ',
-                                          score: 4.7,
-                                        ),
-                                      ),
-                                      Expanded(
-                                        child: ScoreMetric(
-                                          label: 'АКТИВНОСТЬ',
-                                          score: 5.0,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 20),
-                                  Text(
-                                    'ПОСЛЕДНИЕ ОЦЕНКИ',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w700,
-                                      color: Colors.grey[500],
-                                      letterSpacing: 0.5,
                                     ),
                                   ),
-                                  const SizedBox(height: 12),
-                                  Row(
-                                    children: grades
-                                        .map(
-                                          (g) => Expanded(
-                                            child: Container(
-                                              margin: const EdgeInsets.only(
-                                                right: 10,
-                                              ),
-                                              padding: const EdgeInsets.all(14),
-                                              decoration: BoxDecoration(
-                                                color: const Color(0xFFF8F9FB),
-                                                borderRadius:
-                                                    BorderRadius.circular(12),
-                                              ),
-                                              child: Column(
-                                                children: [
-                                                  Text(
-                                                    g['label'],
-                                                    style: TextStyle(
-                                                      fontSize: 22,
-                                                      fontWeight:
-                                                          FontWeight.w800,
-                                                      color:
-                                                          g['color'] as Color,
-                                                    ),
-                                                  ),
-                                                  const SizedBox(height: 4),
-                                                  Text(
-                                                    g['subject'],
-                                                    style: TextStyle(
-                                                      fontSize: 11,
-                                                      color: Colors.grey[500],
-                                                    ),
-                                                    textAlign: TextAlign.center,
-                                                  ),
-                                                ],
-                                              ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const SizedBox(height: 16),
+
+                                      // ScoreMetric — средние по группе
+                                      Row(
+                                        children: [
+                                          Expanded(
+                                            child: ScoreMetric(
+                                              label: 'ДОМАШНИЕ\nЗАДАНИЯ',
+                                              score:
+                                                  countHw > 0 ? avgHw : 0.0,
                                             ),
                                           ),
-                                        )
-                                        .toList(),
+                                          Expanded(
+                                            child: ScoreMetric(
+                                              label: 'ТЕСТЫ И ЭКЗАМЕНЫ',
+                                              score: countClass > 0
+                                                  ? avgClass
+                                                  : 0.0,
+                                            ),
+                                          ),
+                                          Expanded(
+                                            child: ScoreMetric(
+                                              label: 'АКТИВНОСТЬ',
+                                              score: journalState
+                                                      is JournalLoaded
+                                                  ? journalState.records
+                                                      .where((r) =>
+                                                          r.attendance ==
+                                                          'present')
+                                                      .length
+                                                      .toDouble()
+                                                  : 0.0,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+
+                                      const SizedBox(height: 20),
+
+                                      // Заголовок + индикатор загрузки
+                                      Row(
+                                        children: [
+                                          Text(
+                                            'ПОСЛЕДНИЕ ОЦЕНКИ',
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w700,
+                                              color: Colors.grey[500],
+                                              letterSpacing: 0.5,
+                                            ),
+                                          ),
+                                          if (journalState
+                                              is JournalLoading) ...[
+                                            const SizedBox(width: 8),
+                                            const SizedBox(
+                                              width: 12,
+                                              height: 12,
+                                              child:
+                                                  CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                              ),
+                                            ),
+                                          ],
+                                        ],
+                                      ),
+
+                                      const SizedBox(height: 12),
+
+                                      // Карточки оценок — тот же UI что был
+                                      Row(
+                                        children: grades
+                                            .map(
+                                              (g) => Expanded(
+                                                child: Container(
+                                                  margin: const EdgeInsets.only(
+                                                    right: 10,
+                                                  ),
+                                                  padding:
+                                                      const EdgeInsets.all(14),
+                                                  decoration: BoxDecoration(
+                                                    color: const Color(
+                                                        0xFFF8F9FB),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            12),
+                                                  ),
+                                                  child: Column(
+                                                    children: [
+                                                      Text(
+                                                        g['label'] as String,
+                                                        style: TextStyle(
+                                                          fontSize: 22,
+                                                          fontWeight:
+                                                              FontWeight.w800,
+                                                          color: g['color']
+                                                              as Color,
+                                                        ),
+                                                      ),
+                                                      const SizedBox(height: 4),
+                                                      Text(
+                                                        g['subject'] as String,
+                                                        style: TextStyle(
+                                                          fontSize: 11,
+                                                          color:
+                                                              Colors.grey[500],
+                                                        ),
+                                                        textAlign:
+                                                            TextAlign.center,
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ),
+                                            )
+                                            .toList(),
+                                      ),
+
+                                      // Текст ошибки если что-то пошло не так
+                                      if (journalState is JournalError) ...[
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          'Не удалось загрузить оценки',
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            color: Colors.red[300],
+                                          ),
+                                        ),
+                                      ],
+                                    ],
                                   ),
-                                ],
-                              ),
+                                );
+                              },
                             ),
                           ],
                         ),
@@ -965,9 +1075,8 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
                                             color: Colors.grey.withOpacity(0.3),
                                           ),
                                           shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(
-                                              10,
-                                            ),
+                                            borderRadius:
+                                                BorderRadius.circular(10),
                                           ),
                                           padding: const EdgeInsets.symmetric(
                                             vertical: 12,

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:srm/src/the_mind/the_mind_students/data/model/students/student_model.dart';
-import 'package:srm/src/the_mind/the_mind_students/presentation/student/cubit/student/student/student_cubit.dart';
+import 'package:srm/src/the_mind/the_mind_students/presentation/student/cubit/student/student_cubit.dart';
 import 'package:srm/src/the_mind/the_mind_students/presentation/student/student_details.dart';
 
 class StudentRow extends StatelessWidget {

@@ -209,4 +209,43 @@ class StudentRepository {
         return 'Лиды';
     }
   }
+  // В StudentRepository добавь эти методы:
+
+  Future<JournalModel> getJournal({
+    required int groupId,
+    required String lessonDate,
+    required String teacherId,
+  }) async {
+    try {
+      final response = await _dio.get(
+        "/teacher/groups/$groupId/journal",
+        queryParameters: {"lesson_date": lessonDate, "teacher_id": teacherId},
+      );
+      return JournalModel.fromJson(response.data as Map<String, dynamic>);
+    } catch (e) {
+      throw Exception("Ошибка загрузки журнала: $e");
+    }
+  }
+
+  Future<void> saveJournal({
+    required int groupId,
+    required String lessonDate,
+    required String teacherId,
+    required List<StudentRecordModel> records,
+  }) async {
+    try {
+      await _dio.post(
+        "/teacher/groups/$groupId/journal",
+        data: {
+          "lesson_date": lessonDate,
+          "teacher_id": teacherId,
+          "student_records": records.map((r) => r.toJson()).toList(),
+        },
+      );
+    } on DioException catch (e) {
+      throw Exception(
+        "Ошибка сохранения журнала: ${e.response?.data ?? e.message}",
+      );
+    }
+  }
 }

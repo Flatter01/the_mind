@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:srm/src/the_mind/the_mind_students/data/datasources/student_api_service.dart';
 import 'package:srm/src/the_mind/the_mind_group/data/models/group_model.dart';
-import 'package:srm/src/the_mind/the_mind_students/presentation/student/cubit/student/student/student_cubit.dart';
+import 'package:srm/src/the_mind/the_mind_students/presentation/student/cubit/student/student_cubit.dart';
 import 'package:srm/src/the_mind/the_mind_students/presentation/student/widgets/add_student/add_student_form.dart';
 
 class AddStudentDialogResponsive extends StatelessWidget {
