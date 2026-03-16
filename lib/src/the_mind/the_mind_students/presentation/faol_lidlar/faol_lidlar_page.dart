@@ -60,6 +60,7 @@ class _FaolLidlarPageState extends State<FaolLidlarPage> {
   @override
   void initState() {
     super.initState();
+    
     columns = {
       'Лиды': [
         LidModels(
@@ -72,6 +73,7 @@ class _FaolLidlarPageState extends State<FaolLidlarPage> {
           branch: "Toshkent",
           tariff: "Standart",
           day: "Понедельник",
+          reason: "На тест",
         ),
         LidModels(
           name: 'Марина Сергеева',
@@ -83,6 +85,7 @@ class _FaolLidlarPageState extends State<FaolLidlarPage> {
           branch: "Toshkent",
           tariff: "Standart",
           day: "Понедельник",
+          reason: "На пробное занятие",
         ),
       ],
       'В ожидании': [
@@ -96,6 +99,7 @@ class _FaolLidlarPageState extends State<FaolLidlarPage> {
           branch: "Toshkent",
           tariff: "Standart",
           day: "Понедельник",
+          reason: "На консультацию",
         ),
       ],
       'Пришёл': [
@@ -109,6 +113,7 @@ class _FaolLidlarPageState extends State<FaolLidlarPage> {
           branch: "Toshkent",
           tariff: "Standart",
           day: "Понедельник",
+          reason: "На тест",
         ),
       ],
       'Не пришёл': [
@@ -122,6 +127,7 @@ class _FaolLidlarPageState extends State<FaolLidlarPage> {
           branch: "Toshkent",
           tariff: "Standart",
           day: "Понедельник",
+          reason: "На пробное занятие",
         ),
       ],
       'Позвонить': [
@@ -135,6 +141,7 @@ class _FaolLidlarPageState extends State<FaolLidlarPage> {
           branch: "Toshkent",
           tariff: "Standart",
           day: "Понедельник",
+          reason: "На консультацию",
         ),
       ],
       'Не ответил': [
@@ -148,6 +155,7 @@ class _FaolLidlarPageState extends State<FaolLidlarPage> {
           branch: "Toshkent",
           tariff: "Standart",
           day: "Понедельник",
+          reason: "На тест",
         ),
       ],
     };
@@ -540,6 +548,18 @@ class _LidCard extends StatelessWidget {
             ],
           ),
 
+          const SizedBox(height: 6),
+          if (user.reason != null && user.reason!.isNotEmpty)
+            Row(
+              children: [
+                Icon(Icons.info_outline, size: 13, color: Colors.grey[500]),
+                const SizedBox(width: 6),
+                Text(
+                  'Причина: ${user.reason}',
+                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                ),
+              ],
+            ),
           const SizedBox(height: 6),
 
           // Дата добавления

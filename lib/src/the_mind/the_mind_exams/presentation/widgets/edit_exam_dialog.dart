@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../the_mind_exams_page.dart';
+import 'package:srm/src/the_mind/the_mind_exams/data/models/exam_model.dart';
 
 // Статус студента
 enum StudentStatus { present, absent, waiting }
@@ -22,16 +22,12 @@ class ExamStudentRow {
 }
 
 class EditExamDialog extends StatefulWidget {
-  final ExamItem exam;
-  final List<Student> allStudents;
-  final List<String> teachers;
+  final ExamModel exam;
   final VoidCallback onSave;
 
   const EditExamDialog({
     super.key,
     required this.exam,
-    required this.allStudents,
-    required this.teachers,
     required this.onSave,
   });
 
@@ -42,46 +38,15 @@ class EditExamDialog extends StatefulWidget {
 class _EditExamDialogState extends State<EditExamDialog> {
   int _currentPage = 1;
   final int _perPage = 5;
-
   String _examStatus = 'planned';
 
-  final List<ExamStudentRow> _students = [
-    ExamStudentRow(
-      firstName: 'Александр',
-      lastName: 'Петров',
-      status: StudentStatus.present,
-      score: 85,
-    ),
-    ExamStudentRow(
-      firstName: 'Мария',
-      lastName: 'Сидорова',
-      status: StudentStatus.present,
-      score: 92,
-    ),
-    ExamStudentRow(firstName: 'Дмитрий', lastName: 'Кузнецов'),
-    ExamStudentRow(
-      firstName: 'Елена',
-      lastName: 'Волкова',
-      status: StudentStatus.absent,
-      score: 0,
-    ),
-    ExamStudentRow(
-      firstName: 'Сергей',
-      lastName: 'Морозов',
-      status: StudentStatus.present,
-      score: 78,
-    ),
-    ExamStudentRow(firstName: 'Анна', lastName: 'Смирнова'),
-    ExamStudentRow(firstName: 'Игорь', lastName: 'Попов'),
-  ];
+  // Пока студенты хардкод — позже заменишь на API
+  final List<ExamStudentRow> _students = [];
 
   @override
   void initState() {
     super.initState();
     _examStatus = widget.exam.status;
-    for (final s in _students) {
-      s.controller.text = s.score?.toString() ?? '';
-    }
   }
 
   @override
@@ -93,11 +58,9 @@ class _EditExamDialogState extends State<EditExamDialog> {
   }
 
   int get _totalStudents => _students.length;
-  int get _passed => _students.where((s) => (s.score ?? 0) >= 60).length;
+  int get _passed => _students.where((s) => (s.score ?? 0) >= widget.exam.passScore).length;
   double get _avgScore {
-    final scored = _students
-        .where((s) => s.score != null && s.score! > 0)
-        .toList();
+    final scored = _students.where((s) => s.score != null && s.score! > 0).toList();
     if (scored.isEmpty) return 0;
     return scored.fold<double>(0, (sum, s) => sum + s.score!) / scored.length;
   }
@@ -118,11 +81,10 @@ class _EditExamDialogState extends State<EditExamDialog> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Заголовок
+            // ── Заголовок ──
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Кнопка назад
                 IconButton(
                   onPressed: () => Navigator.of(context).pop(),
                   icon: const Icon(Icons.arrow_back_ios_new, size: 18),
@@ -150,13 +112,15 @@ class _EditExamDialogState extends State<EditExamDialog> {
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        'Управление процессом проведения экзамена и ведомость успеваемости группы ${e.group}',
+                        'Управление процессом проведения экзамена и ведомость успеваемости группы ${e.groupName}',
                         style: TextStyle(fontSize: 13, color: Colors.grey[500]),
                       ),
                     ],
                   ),
                 ),
                 const SizedBox(width: 16),
+
+                // Начать экзамен
                 ElevatedButton.icon(
                   onPressed: _examStatus == 'finished'
                       ? null
@@ -175,6 +139,8 @@ class _EditExamDialogState extends State<EditExamDialog> {
                   ),
                 ),
                 const SizedBox(width: 10),
+
+                // Завершить
                 OutlinedButton.icon(
                   onPressed: _examStatus == 'planned'
                       ? null
@@ -195,22 +161,29 @@ class _EditExamDialogState extends State<EditExamDialog> {
 
             const SizedBox(height: 24),
 
-            // Инфо карточки
+            // ── Инфо карточки ──
             Row(
               children: [
                 _infoCard('ЭКЗАМЕН', e.title),
                 const SizedBox(width: 12),
-                _infoCard('ГРУППА', e.group),
+                _infoCard('ГРУППА', e.groupName),
                 const SizedBox(width: 12),
-                _infoCard('ПРЕПОДАВАТЕЛЬ', e.teacher),
+                _infoCard('ПРЕПОДАВАТЕЛЬ', e.teacherName),
                 const SizedBox(width: 12),
-                _infoCard('ДАТА ПРОВЕДЕНИЯ', _formatDate(e.date)),
+                _infoCard('ДАТА ПРОВЕДЕНИЯ', e.examDate),
+                const SizedBox(width: 12),
+                _infoCard(
+                  'ВРЕМЯ',
+                  '${e.startTime.length >= 5 ? e.startTime.substring(0, 5) : e.startTime}'
+                  ' — '
+                  '${e.endTime.length >= 5 ? e.endTime.substring(0, 5) : e.endTime}',
+                ),
               ],
             ),
 
             const SizedBox(height: 20),
 
-            // Таблица студентов
+            // ── Таблица студентов ──
             Container(
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -228,13 +201,17 @@ class _EditExamDialogState extends State<EditExamDialog> {
                       children: [
                         const Text(
                           'Список студентов',
-                          style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: Color(0xFF1A2233)),
+                          style: TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF1A2233),
+                          ),
                         ),
                         const Spacer(),
                         const Icon(Icons.info_outline, size: 15, color: Color(0xFFED6A2E)),
                         const SizedBox(width: 6),
                         Text(
-                          'Оценки сохраняются автоматически',
+                          'Проходной балл: ${e.passScore}${e.isPercentage ? '%' : ''}',
                           style: TextStyle(fontSize: 13, color: Colors.grey[500]),
                         ),
                       ],
@@ -261,22 +238,38 @@ class _EditExamDialogState extends State<EditExamDialog> {
                   ),
 
                   // Строки студентов
-                  ...List.generate(_pageItems.length, (i) {
-                    final s = _pageItems[i];
-                    final globalIndex = (_currentPage - 1) * _perPage + i + 1;
-                    return _studentRow(globalIndex, s);
-                  }),
+                  _students.isEmpty
+                      ? Padding(
+                          padding: const EdgeInsets.all(32),
+                          child: Center(
+                            child: Text(
+                              'Студенты не найдены',
+                              style: TextStyle(fontSize: 14, color: Colors.grey[400]),
+                            ),
+                          ),
+                        )
+                      : Column(
+                          children: List.generate(_pageItems.length, (i) {
+                            final s = _pageItems[i];
+                            final globalIndex = (_currentPage - 1) * _perPage + i + 1;
+                            return _studentRow(globalIndex, s);
+                          }),
+                        ),
 
                   Padding(
                     padding: const EdgeInsets.fromLTRB(24, 14, 24, 18),
                     child: Row(
                       children: [
                         Text(
-                          'Показано ${(_currentPage - 1) * _perPage + 1}-${(_currentPage - 1) * _perPage + _pageItems.length} из $_totalStudents студентов',
+                          _students.isEmpty
+                              ? '0 студентов'
+                              : 'Показано ${(_currentPage - 1) * _perPage + 1}-'
+                                '${(_currentPage - 1) * _perPage + _pageItems.length} '
+                                'из $_totalStudents студентов',
                           style: TextStyle(fontSize: 13, color: Colors.grey[500]),
                         ),
                         const Spacer(),
-                        _buildPagination(),
+                        if (_students.isNotEmpty) _buildPagination(),
                       ],
                     ),
                   ),
@@ -286,7 +279,7 @@ class _EditExamDialogState extends State<EditExamDialog> {
 
             const SizedBox(height: 16),
 
-            // Статистика
+            // ── Статистика ──
             Row(
               children: [
                 _statCard(Icons.people_outlined, 'ВСЕГО СТУДЕНТОВ', '$_totalStudents'),
@@ -294,6 +287,8 @@ class _EditExamDialogState extends State<EditExamDialog> {
                 _statCard(Icons.how_to_reg_outlined, 'СДАЛИ ЭКЗАМЕН', '$_passed'),
                 const SizedBox(width: 12),
                 _statCard(Icons.bar_chart_outlined, 'СРЕДНИЙ БАЛЛ', _avgScore.toStringAsFixed(1)),
+                const SizedBox(width: 12),
+                _statCard(Icons.assignment_outlined, 'РЕЗУЛЬТАТОВ', '${e.resultsCount}'),
               ],
             ),
 
@@ -318,12 +313,21 @@ class _EditExamDialogState extends State<EditExamDialog> {
           children: [
             Text(
               label,
-              style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Colors.grey[400], letterSpacing: 0.4),
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                color: Colors.grey[400],
+                letterSpacing: 0.4,
+              ),
             ),
             const SizedBox(height: 6),
             Text(
               value,
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF1A2233)),
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF1A2233),
+              ),
             ),
           ],
         ),
@@ -410,7 +414,11 @@ class _EditExamDialogState extends State<EditExamDialog> {
           ),
           child: Text(
             info['label'] as String,
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: info['color'] as Color),
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: info['color'] as Color,
+            ),
           ),
         ),
       ),
@@ -489,12 +497,21 @@ class _EditExamDialogState extends State<EditExamDialog> {
               children: [
                 Text(
                   label,
-                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Colors.grey[500], letterSpacing: 0.4),
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.grey[500],
+                    letterSpacing: 0.4,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   value,
-                  style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: Color(0xFF1A2233)),
+                  style: const TextStyle(
+                    fontSize: 26,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF1A2233),
+                  ),
                 ),
               ],
             ),
@@ -559,14 +576,6 @@ class _EditExamDialogState extends State<EditExamDialog> {
       ),
     );
   }
-
-  String _formatDate(DateTime d) {
-    const months = [
-      'января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
-      'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря',
-    ];
-    return '${d.day} ${months[d.month - 1]} ${d.year}';
-  }
 }
 
 class _ColH extends StatelessWidget {
@@ -577,7 +586,12 @@ class _ColH extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text,
-      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFFED6A2E), letterSpacing: 0.3),
+      style: const TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.w700,
+        color: Color(0xFFED6A2E),
+        letterSpacing: 0.3,
+      ),
     );
   }
 }

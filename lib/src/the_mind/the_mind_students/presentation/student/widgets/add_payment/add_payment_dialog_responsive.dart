@@ -56,15 +56,15 @@ class _AddPaymentDialogResponsiveState
         "${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}";
 
     try {
-      await context.read<PaymentCubit>().createPayment(
-        student: selectedStudent!.id,
-        group: selectedStudent!.groupId!,       // ← UUID String
-        administrator: "3fa85f64-5717-4562-b3fc-2c963f66afa6", // ← токендан олиш керак
-        amount: amountController.text.trim(),
-        payWith: selectedPaymentMethod,
-        paymentMonth: paymentMonth,
-        checkGiven: true,
-      );
+      // await context.read<PaymentCubit>().createPayment(
+      //   student: selectedStudent!.id,
+      //   group: selectedStudent!.groupId!,       // ← UUID String
+      //   administrator: "3fa85f64-5717-4562-b3fc-2c963f66afa6", // ← токендан олиш керак
+      //   amount: amountController.text.trim(),
+      //   payWith: selectedPaymentMethod,
+      //   paymentMonth: paymentMonth,
+      //   checkGiven: true,
+      // );
 
       if (!mounted) return;
 

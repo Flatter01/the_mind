@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:srm/src/core/colors/app_colors.dart';
 import 'package:srm/src/the_mind/the_mind_group/data/models/group_model.dart';
-import 'package:srm/src/the_mind/the_mind_students/presentation/student/cubit/student/student_cubit.dart';
+import 'package:srm/src/the_mind/the_mind_students/presentation/student/cubit/student/student/student_cubit.dart';
 
 class AddStudentForm extends StatefulWidget {
   final List<String> courses;
@@ -36,7 +36,7 @@ class _AddStudentFormState extends State<AddStudentForm> {
   String? selectedSource;
   String? selectedCourse;
   String? selectedGroup; // Гуруҳ номи
-  int? selectedGroupId; // Гуруҳ UUID — API'га юборилади
+  String? selectedGroupId; // Гуруҳ UUID — API'га юборилади
   String? autoTeacherName; // Гуруҳдан автоматик
   bool _isLoading = false;
 
@@ -74,8 +74,27 @@ class _AddStudentFormState extends State<AddStudentForm> {
           .where((g) => g.name == groupName)
           .firstOrNull;
 
-      selectedGroupId = match?.id; // ✅ UUID группы
-      autoTeacherName = match?.teacherName; // для отображения
+      // print('🔍 GroupModel fields: ${match?.toJson()}');
+
+      selectedGroupId = match?.id?.toString();
+
+      // ✅ Убираем "None" из имени учителя
+      final rawName = match?.teacherName ?? '';
+      autoTeacherName =
+          rawName
+              .split(' ')
+              .where((part) => part.isNotEmpty && part.toLowerCase() != 'none')
+              .join(' ')
+              .trim()
+              .isEmpty
+          ? null
+          : rawName
+                .split(' ')
+                .where(
+                  (part) => part.isNotEmpty && part.toLowerCase() != 'none',
+                )
+                .join(' ')
+                .trim();
     });
   }
 
@@ -101,7 +120,7 @@ class _AddStudentFormState extends State<AddStudentForm> {
         district: int.tryParse(districtCtrl.text.trim()) ?? 1,
         source: _mapSource(selectedSource),
         notes: "",
-        // groupId: selectedGroupId, // ← UUID автоматик
+        groupIntId: int.tryParse(selectedGroupId ?? ''), // ✅ int id группы
       );
 
       if (!mounted) return;

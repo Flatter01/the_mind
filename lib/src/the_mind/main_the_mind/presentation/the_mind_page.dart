@@ -4,10 +4,7 @@ import 'package:srm/src/core/colors/app_colors.dart';
 import 'package:srm/src/core/widgets/analytica/build_analytics_details.dart';
 import 'package:srm/src/the_mind/home/data/models/build_debtors_table_models.dart';
 import 'package:srm/src/the_mind/main_the_mind/presentation/widgets/analytica/analytica.dart';
-import 'package:srm/src/the_mind/main_the_mind/presentation/widgets/analytics_grid.dart';
 import 'package:srm/src/the_mind/main_the_mind/presentation/widgets/attendance_chart.dart';
-import 'package:srm/src/the_mind/home/presentation/widgets/build_analytics.dart'
-    hide AnalyticsItem;
 import 'package:srm/src/the_mind/main_the_mind/data/attendance_api.dart';
 import 'package:srm/src/the_mind/main_the_mind/data/attendance_repository.dart';
 import 'package:srm/src/the_mind/main_the_mind/domain/attendance_entity.dart';

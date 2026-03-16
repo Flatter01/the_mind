@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:srm/src/core/colors/app_colors.dart';
 import 'package:srm/src/the_mind/the_mind_settings/presentation/widgets/branch_manager_page.dart';
+import 'package:srm/src/the_mind/the_mind_settings/presentation/widgets/expense/analytics_lids.dart';
 import 'package:srm/src/the_mind/the_mind_settings/presentation/widgets/expense/expense_options_page.dart';
 import 'package:srm/src/the_mind/the_mind_settings/presentation/widgets/expense/marketing_analytics_page.dart';
 import 'package:srm/src/the_mind/the_mind_settings/presentation/widgets/feedback/feedback_page.dart';
@@ -24,6 +25,7 @@ class _TheMindSettingsPageState extends State<TheMindSettingsPage> {
   static const List<String> _tabs = [
     'Расходы',
     'Маркетинг',
+    'Маркетинг Лид',
     'Новости',
     'Feedback',
     'SMS',
@@ -38,14 +40,16 @@ class _TheMindSettingsPageState extends State<TheMindSettingsPage> {
       case 1:
         return MarketingAnalyticsPage();
       case 2:
-        return NewsPage();
+        return AnalyticsLids();
       case 3:
-        return FeedbackPage();
+        return NewsPage();
       case 4:
-        return SmsNewUsersPage();
+        return FeedbackPage();
       case 5:
-        return CreateRolePage();
+        return SmsNewUsersPage();
       case 6:
+        return CreateRolePage();
+      case 7:
         return BranchManagerPage();
       default:
         return const SizedBox();

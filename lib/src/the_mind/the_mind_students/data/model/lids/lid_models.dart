@@ -13,6 +13,7 @@ class LidModels {
   String branch;
   String tariff;
   String day;
+  String? reason; // ← новое поле
 
   LidModels({
     required this.name,
@@ -26,5 +27,6 @@ class LidModels {
     this.gender = '',
     this.course = '',
     this.comment = '',
+    this.reason,
   });
 }

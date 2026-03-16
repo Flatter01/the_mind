@@ -87,6 +87,7 @@ Future<List<Map<String, dynamic>>> getGroupAttendance(int groupId) async {
     required String startTime, // "HH:mm:ss"
     required String endTime, // "HH:mm:ss"
     required bool isActive,
+    required String weekDays,
   }) async {
     try {
       final response = await _dio.post(
@@ -102,6 +103,7 @@ Future<List<Map<String, dynamic>>> getGroupAttendance(int groupId) async {
           "start_time": startTime,
           "end_time": endTime,
           "is_active": isActive,
+          "week_days" : weekDays,
         },
       );
       if (response.statusCode != 200 && response.statusCode != 201) {

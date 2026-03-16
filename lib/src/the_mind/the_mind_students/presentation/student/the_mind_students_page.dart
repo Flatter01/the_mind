@@ -1,3 +1,4 @@
+// the_mind_students_page.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:srm/src/core/colors/app_colors.dart';
@@ -6,8 +7,11 @@ import 'package:srm/src/the_mind/the_mind_group/presentation/cubit/group/group_c
 import 'package:srm/src/the_mind/the_mind_group/presentation/cubit/group/group_state.dart';
 import 'package:srm/src/the_mind/the_mind_students/data/model/analytic/analytic_item.dart'
     show AnalyticItem;
-import 'package:srm/src/the_mind/the_mind_students/presentation/student/cubit/student/student_cubit.dart';
-import 'package:srm/src/the_mind/the_mind_students/presentation/student/cubit/student/student_state.dart';
+import 'package:srm/src/the_mind/the_mind_students/data/model/students/ui_summary_model.dart';
+import 'package:srm/src/the_mind/the_mind_students/presentation/student/cubit/student/dashboard/dashboard_cubit.dart';
+import 'package:srm/src/the_mind/the_mind_students/presentation/student/cubit/student/dashboard/dashboard_state.dart';
+import 'package:srm/src/the_mind/the_mind_students/presentation/student/cubit/student/student/student_cubit.dart';
+import 'package:srm/src/the_mind/the_mind_students/presentation/student/cubit/student/student/student_state.dart';
 import 'package:srm/src/the_mind/the_mind_students/presentation/student/widgets/add_payment/add_payment_dialog_responsive.dart';
 import 'package:srm/src/the_mind/the_mind_students/presentation/student/widgets/add_student/add_student_dialog_responsive.dart';
 import 'package:srm/src/the_mind/the_mind_students/presentation/student/cubit/payment/payment_cubit.dart';
@@ -32,77 +36,76 @@ class _TheMindStudentsPageState extends State<TheMindStudentsPage> {
   int _currentPage = 1;
   final int _perPage = 10;
 
-  final List<AnalyticItem> analytics = const [
-    AnalyticItem(
-      title: 'Лиды',
-      value: '124',
-      sub: '+12% за месяц',
-      subPositive: true,
-      icon: Icons.people_alt_outlined,
-      iconColor: Color(0xFF6B7FD4),
-    ),
-    AnalyticItem(
-      title: 'Студенты',
-      value: '850',
-      sub: 'Всего активных',
-      subPositive: null,
-      icon: Icons.school_outlined,
-      iconColor: Color(0xFF2ECC8A),
-    ),
-    AnalyticItem(
-      title: 'Должники',
-      value: '42',
-      sub: '5% от общего числа',
-      subPositive: false,
-      icon: Icons.warning_amber_rounded,
-      iconColor: Color(0xFFED6A2E),
-    ),
-    AnalyticItem(
-      title: 'Сумма долга',
-      value: '450,000 Сум',
-      sub: 'К получению',
-      subPositive: null,
-      icon: Icons.account_balance_wallet_outlined,
-      iconColor: Color(0xFF8A9BB8),
-    ),
-    AnalyticItem(
-      title: 'Группы',
-      value: '36',
-      sub: '8 направлений',
-      subPositive: null,
-      icon: Icons.groups_outlined,
-      iconColor: Color(0xFF1A2233),
-    ),
-  ];
-
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     context.read<StudentCubit>().getStudents();
   }
 
+  List<AnalyticItem> _buildAnalytics(DashboardModel dashboard) {
+    final cards = dashboard.cards;
+    return [
+      AnalyticItem(
+        title: 'Лиды',
+        value: cards.activeLeads.toString(),
+        sub: 'Активные лиды',
+        subPositive: null,
+        icon: Icons.people_alt_outlined,
+        iconColor: const Color(0xFF6B7FD4),
+      ),
+      AnalyticItem(
+        title: 'Студенты',
+        value: cards.activeStudents.toString(),
+        sub: 'Всего активных',
+        subPositive: null,
+        icon: Icons.school_outlined,
+        iconColor: const Color(0xFF2ECC8A),
+      ),
+      AnalyticItem(
+        title: 'Должники',
+        value: cards.debtors.toString(),
+        sub: 'Текущие должники',
+        subPositive: false,
+        icon: Icons.warning_amber_rounded,
+        iconColor: const Color(0xFFED6A2E),
+      ),
+      AnalyticItem(
+        title: 'Сумма долга',
+        value: cards.totalDebt,
+        sub: 'К получению',
+        subPositive: null,
+        icon: Icons.account_balance_wallet_outlined,
+        iconColor: const Color(0xFF8A9BB8),
+      ),
+      AnalyticItem(
+        title: 'Группы',
+        value: cards.groups.toString(),
+        sub: 'Активные группы',
+        subPositive: null,
+        icon: Icons.groups_outlined,
+        iconColor: const Color(0xFF1A2233),
+      ),
+    ];
+  }
+
   @override
   Widget build(BuildContext context) {
-    // ← GroupCubit'дан гуруҳларни оламиз
     final groupState = context.watch<GroupCubit>().state;
     final groups = groupState is GroupLoaded
         ? groupState.groups
         : <GroupModel>[];
 
-    // Гуруҳ номлари → AddStudentDialog'га
     final groupNames = groups
         .map((g) => g.name ?? '')
         .where((n) => n.isNotEmpty)
         .toList();
 
-    // Ўқитувчи номлари → FiltersCard'га
     final teacherNames = groups
         .map((g) => g.teacherName ?? '')
         .where((t) => t.isNotEmpty)
         .toSet()
         .toList();
 
-    // Курс номлари → FiltersCard'га
     final courseNames = groups
         .map((g) => g.levelDisplay ?? g.level ?? '')
         .where((c) => c.isNotEmpty)
@@ -115,10 +118,18 @@ class _TheMindStudentsPageState extends State<TheMindStudentsPage> {
           return TheMindStudentsPageShimmer();
         }
         if (state is StudentError) {
-          print(state.message);
           return Center(child: Text(state.message));
         }
         if (state is StudentLoaded) {
+          // ← Считаем аналитику локально после загрузки студентов
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            context.read<DashboardCubit>().computeFromStudents(
+              students: state.students,
+              groupsCount: groups.length,
+            );
+          });
+
           final students = state.students;
 
           final filtered = students.where((s) {
@@ -215,7 +226,7 @@ class _TheMindStudentsPageState extends State<TheMindStudentsPage> {
                     ),
                     const SizedBox(width: 12),
 
-                    // Добавить студента — гуруҳлар API'дан ←
+                    // Добавить студента
                     ElevatedButton.icon(
                       onPressed: () async {
                         final studentCubit = context.read<StudentCubit>();
@@ -231,8 +242,7 @@ class _TheMindStudentsPageState extends State<TheMindStudentsPage> {
                               groups: groupNames.isEmpty
                                   ? ['Guruh topilmadi']
                                   : groupNames,
-                              groupModels:
-                                  groups, // ← GroupModel рўйхати қўшилди
+                              groupModels: groups,
                             ),
                           ),
                         );
@@ -263,29 +273,57 @@ class _TheMindStudentsPageState extends State<TheMindStudentsPage> {
 
                 const SizedBox(height: 28),
 
-                // ── Аналитика ──
-                SizedBox(
-                  height: 130,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: analytics.length,
-                    separatorBuilder: (_, __) => const SizedBox(width: 16),
-                    itemBuilder: (context, index) =>
-                        AnalyticCard(item: analytics[index]),
-                  ),
+                // ── Аналитика из DashboardCubit ──
+                BlocBuilder<DashboardCubit, DashboardState>(
+                  builder: (context, dashState) {
+                    if (dashState is DashboardInitial ||
+                        dashState is DashboardLoading) {
+                      return const SizedBox(
+                        height: 130,
+                        child: Center(child: CircularProgressIndicator()),
+                      );
+                    }
+
+                    if (dashState is DashboardError) {
+                      return SizedBox(
+                        height: 130,
+                        child: Center(
+                          child: Text(
+                            dashState.message,
+                            style: const TextStyle(color: Colors.red),
+                          ),
+                        ),
+                      );
+                    }
+
+                    final analytics = dashState is DashboardLoaded
+                        ? _buildAnalytics(dashState.dashboard)
+                        : <AnalyticItem>[];
+
+                    return SizedBox(
+                      height: 130,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: analytics.length,
+                        separatorBuilder: (_, __) => const SizedBox(width: 16),
+                        itemBuilder: (context, index) =>
+                            AnalyticCard(item: analytics[index]),
+                      ),
+                    );
+                  },
                 ),
 
                 const SizedBox(height: 24),
 
-                // ── Фильтры — API'дан ←
+                // ── Фильтры ──
                 FiltersCard(
                   search: _search,
                   selectedDayType: _selectedDayType,
                   selectedTeacher: _selectedTeacher,
                   selectedCourse: _selectedCourse,
                   selectedStatus: _selectedStatus,
-                  teachers: teacherNames, // ← API'дан
-                  courses: courseNames, // ← API'дан
+                  teachers: teacherNames,
+                  courses: courseNames,
                   onSearchChanged: (v) => setState(() {
                     _search = v;
                     _currentPage = 1;

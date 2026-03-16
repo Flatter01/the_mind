@@ -17,33 +17,64 @@ class CreateGroupPage extends StatefulWidget {
 }
 
 class _CreateGroupPageState extends State<CreateGroupPage> {
-  final _groupName     = TextEditingController();
-  final _studentLimit  = TextEditingController();
-  final _studentPrice  = TextEditingController();
-  final _teacherRate   = TextEditingController(text: '0');
-  final _startDateCtrl = TextEditingController();
-  final _endDateCtrl   = TextEditingController();
-  final _roomCtrl      = TextEditingController(text: '0');
+  final _groupName = TextEditingController();
+  final _studentLimit = TextEditingController();
+  final _studentPrice = TextEditingController();
+  final _teacherRate = TextEditingController(text: '0');
+  final _roomCtrl = TextEditingController(text: '0');
 
   String? _selectedLevel;
-  String? _selectedTeacherId;   // UUID — API'га юборилади
+  String? _selectedTeacherId;
   TeacherRateType _rateType = TeacherRateType.fixed;
   TimeOfDay? _startTime;
   TimeOfDay? _endTime;
   bool _isActive = true;
 
+  // ── Дни недели: 1=Пн … 7=Вс ──
+  final Set<int> _selectedDays = {};
+
+  static const _dayLabels = {
+    1: 'Пн',
+    2: 'Вт',
+    3: 'Ср',
+    4: 'Чт',
+    5: 'Пт',
+    6: 'Сб',
+    7: 'Вс',
+  };
+
+  // Чётные = Вт, Чт, Сб (2,4,6)
+  // Нечётные = Пн, Ср, Пт (1,3,5)
+  void _selectOdd() => setState(() {
+    _selectedDays.clear();
+    _selectedDays.addAll([1, 3, 5]);
+  });
+  void _selectEven() => setState(() {
+    _selectedDays.clear();
+    _selectedDays.addAll([2, 4, 6]);
+  });
+  void _selectAll() => setState(() {
+    _selectedDays.addAll([1, 2, 3, 4, 5, 6, 7]);
+  });
+  void _clearDays() => setState(() => _selectedDays.clear());
+
+  // Итоговая строка для API, например "1,3,5"
+  String get _weekDaysValue {
+    final sorted = _selectedDays.toList()..sort();
+    return sorted.join(',');
+  }
+
   final Map<String, String> _levels = const {
-    'beginner':     'Начинающий (Beginner)',
-    'elementary':   'Элементарный (Elementary)',
+    'beginner': 'Начинающий (Beginner)',
+    'elementary': 'Элементарный (Elementary)',
     'intermediate': 'Средний (Intermediate)',
-    'upper':        'Выше среднего (Upper)',
-    'advanced':     'Продвинутый (Advanced)',
+    'upper': 'Выше среднего (Upper)',
+    'advanced': 'Продвинутый (Advanced)',
   };
 
   @override
   void initState() {
     super.initState();
-    // Ўқитувчилар рўйхатини юклаймиз
     context.read<TeacherCubit>().getTeachers();
   }
 
@@ -53,8 +84,6 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
     _studentLimit.dispose();
     _studentPrice.dispose();
     _teacherRate.dispose();
-    _startDateCtrl.dispose();
-    _endDateCtrl.dispose();
     _roomCtrl.dispose();
     super.dispose();
   }
@@ -62,10 +91,6 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
   String _fmt(TimeOfDay t) =>
       '${t.hour.toString().padLeft(2, '0')}:'
       '${t.minute.toString().padLeft(2, '0')}:00';
-
-  String _fmtDate(DateTime d) =>
-      '${d.year}-${d.month.toString().padLeft(2, '0')}-'
-      '${d.day.toString().padLeft(2, '0')}';
 
   Future<void> _submit(BuildContext context) async {
     if (_groupName.text.trim().isEmpty) {
@@ -84,29 +109,32 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
       _showError(context, 'Укажите время занятий');
       return;
     }
-    if (_startDateCtrl.text.isEmpty || _endDateCtrl.text.isEmpty) {
-      _showError(context, 'Укажите даты начала и окончания');
+    if (_selectedDays.isEmpty) {
+      _showError(context, 'Выберите дни недели');
       return;
     }
+
+    final sortedDays = _selectedDays.toList()..sort();
 
     await context.read<GroupCubit>().createGroup(
       name: _groupName.text.trim(),
       level: _selectedLevel!,
-      teacher: _selectedTeacherId!,  // UUID
+      teacher: _selectedTeacherId!,
       room: int.tryParse(_roomCtrl.text) ?? 0,
       price: _studentPrice.text.trim(),
-      startDate: _startDateCtrl.text,
-      endDate: _endDateCtrl.text,
+      weekDays: sortedDays.join(','), // "1,3,5" или "2,4,6"
       startTime: _fmt(_startTime!),
       endTime: _fmt(_endTime!),
       isActive: _isActive,
+      startDate: '',
+      endDate: '',
     );
   }
 
   void _showError(BuildContext context, String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg), backgroundColor: Colors.red),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(msg), backgroundColor: Colors.red));
   }
 
   @override
@@ -154,7 +182,6 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Название группы
                       Expanded(
                         child: _labeledField(
                           label: 'Название группы *',
@@ -165,7 +192,6 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                         ),
                       ),
                       const SizedBox(width: 20),
-                      // ← TEACHER DROPDOWN
                       Expanded(
                         child: _labeledField(
                           label: 'Учитель *',
@@ -215,61 +241,50 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Время
                       Expanded(
                         child: _labeledField(
                           label: 'Время занятий *',
                           child: Row(
                             children: [
                               Expanded(
-                                child: _timeField(context,
-                                    time: _startTime,
-                                    onPick: (t) =>
-                                        setState(() => _startTime = t)),
+                                child: _timeField(
+                                  context,
+                                  time: _startTime,
+                                  onPick: (t) => setState(() => _startTime = t),
+                                ),
                               ),
                               Padding(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 10),
-                                child: Text('—',
-                                    style: TextStyle(
-                                        fontSize: 18,
-                                        color: Colors.grey[400])),
+                                  horizontal: 10,
+                                ),
+                                child: Text(
+                                  '—',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    color: Colors.grey[400],
+                                  ),
+                                ),
                               ),
                               Expanded(
-                                child: _timeField(context,
-                                    time: _endTime,
-                                    onPick: (t) =>
-                                        setState(() => _endTime = t)),
+                                child: _timeField(
+                                  context,
+                                  time: _endTime,
+                                  onPick: (t) => setState(() => _endTime = t),
+                                ),
                               ),
                             ],
                           ),
                         ),
                       ),
+
                       const SizedBox(width: 20),
+
+                      // Дни недели
                       Expanded(
                         child: _labeledField(
-                          label: 'Даты начала — окончания *',
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: _dateField(
-                                    controller: _startDateCtrl,
-                                    hint: 'Начало'),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 10),
-                                child: Text('—',
-                                    style: TextStyle(
-                                        fontSize: 18,
-                                        color: Colors.grey[400])),
-                              ),
-                              Expanded(
-                                child: _dateField(
-                                    controller: _endDateCtrl,
-                                    hint: 'Конец'),
-                              ),
-                            ],
-                          ),
+                          label: 'Дни занятий *',
+                          child: _weekDaySelector(),
                         ),
                       ),
                     ],
@@ -306,12 +321,19 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                                   color: const Color(0xFFF8F9FB),
                                   borderRadius: BorderRadius.circular(12),
                                   border: Border.all(
-                                      color: Colors.grey.withOpacity(0.2)),
+                                    color: Colors.grey.withOpacity(0.2),
+                                  ),
                                 ),
                                 child: Row(
                                   children: [
-                                    _rateToggleBtn('Фикса', TeacherRateType.fixed),
-                                    _rateToggleBtn('Процент (%)', TeacherRateType.percent),
+                                    _rateToggleBtn(
+                                      'Фикса',
+                                      TeacherRateType.fixed,
+                                    ),
+                                    _rateToggleBtn(
+                                      'Процент (%)',
+                                      TeacherRateType.percent,
+                                    ),
                                   ],
                                 ),
                               ),
@@ -322,7 +344,8 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                                   color: Colors.white,
                                   borderRadius: BorderRadius.circular(12),
                                   border: Border.all(
-                                      color: Colors.grey.withOpacity(0.2)),
+                                    color: Colors.grey.withOpacity(0.2),
+                                  ),
                                 ),
                                 child: Row(
                                   children: [
@@ -331,25 +354,29 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                                         controller: _teacherRate,
                                         keyboardType: TextInputType.number,
                                         inputFormatters: [
-                                          FilteringTextInputFormatter.digitsOnly
+                                          FilteringTextInputFormatter
+                                              .digitsOnly,
                                         ],
                                         decoration: const InputDecoration(
                                           border: InputBorder.none,
-                                          contentPadding:
-                                              EdgeInsets.symmetric(horizontal: 14),
+                                          contentPadding: EdgeInsets.symmetric(
+                                            horizontal: 14,
+                                          ),
                                         ),
                                       ),
                                     ),
                                     Padding(
                                       padding: const EdgeInsets.symmetric(
-                                          horizontal: 12),
+                                        horizontal: 12,
+                                      ),
                                       child: Text(
                                         _rateType == TeacherRateType.percent
                                             ? '%'
                                             : 'сум',
                                         style: TextStyle(
-                                            color: Colors.grey[500],
-                                            fontWeight: FontWeight.w600),
+                                          color: Colors.grey[500],
+                                          fontWeight: FontWeight.w600,
+                                        ),
                                       ),
                                     ),
                                   ],
@@ -398,14 +425,20 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                                 : () => Navigator.pop(context),
                             style: OutlinedButton.styleFrom(
                               side: BorderSide(
-                                  color: Colors.grey.withOpacity(0.3)),
+                                color: Colors.grey.withOpacity(0.3),
+                              ),
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 32, vertical: 14),
+                                horizontal: 32,
+                                vertical: 14,
+                              ),
                               shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12)),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                             ),
-                            child: const Text('Отмена',
-                                style: TextStyle(color: Colors.black87)),
+                            child: const Text(
+                              'Отмена',
+                              style: TextStyle(color: Colors.black87),
+                            ),
                           ),
                           const SizedBox(width: 12),
                           ElevatedButton(
@@ -416,21 +449,29 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                               backgroundColor: const Color(0xFFED6A2E),
                               elevation: 0,
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 32, vertical: 14),
+                                horizontal: 32,
+                                vertical: 14,
+                              ),
                               shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12)),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                             ),
                             child: state is GroupLoading
                                 ? const SizedBox(
                                     width: 20,
                                     height: 20,
                                     child: CircularProgressIndicator(
-                                        color: Colors.white, strokeWidth: 2),
+                                      color: Colors.white,
+                                      strokeWidth: 2,
+                                    ),
                                   )
-                                : const Text('Создать группу',
+                                : const Text(
+                                    'Создать группу',
                                     style: TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w600)),
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
                           ),
                         ],
                       );
@@ -445,11 +486,154 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
     );
   }
 
-  // ── TEACHER DROPDOWN ─────────────────────────────────────────────────────
+  // ── ВЫБОР ДНЕЙ НЕДЕЛИ ─────────────────────────────────────────────────────
+  Widget _weekDaySelector() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Быстрые кнопки
+        Row(
+          children: [
+            _quickBtn(
+              'Нечётные',
+              onTap: _selectOdd,
+              active:
+                  _selectedDays.containsAll([1, 3, 5]) &&
+                  !_selectedDays.contains(2),
+            ),
+            const SizedBox(width: 8),
+            _quickBtn(
+              'Чётные',
+              onTap: _selectEven,
+              active:
+                  _selectedDays.containsAll([2, 4, 6]) &&
+                  !_selectedDays.contains(1),
+            ),
+            const SizedBox(width: 8),
+            _quickBtn(
+              'Все',
+              onTap: _selectAll,
+              active: _selectedDays.length == 7,
+            ),
+            const Spacer(),
+            if (_selectedDays.isNotEmpty)
+              GestureDetector(
+                onTap: _clearDays,
+                child: Text(
+                  'Сбросить',
+                  style: TextStyle(fontSize: 11, color: Colors.grey[400]),
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        // Кнопки дней
+        Row(
+          children: _dayLabels.entries.map((entry) {
+            final isSelected = _selectedDays.contains(entry.key);
+            final isWeekend = entry.key >= 6;
+            return Expanded(
+              child: GestureDetector(
+                onTap: () => setState(() {
+                  if (isSelected) {
+                    _selectedDays.remove(entry.key);
+                  } else {
+                    _selectedDays.add(entry.key);
+                  }
+                }),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  margin: const EdgeInsets.only(right: 4),
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? const Color(0xFFED6A2E)
+                        : isWeekend
+                        ? const Color(0xFFFFF3EE)
+                        : Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: isSelected
+                          ? const Color(0xFFED6A2E)
+                          : isWeekend
+                          ? const Color(0xFFED6A2E).withOpacity(0.2)
+                          : Colors.grey.withOpacity(0.2),
+                    ),
+                  ),
+                  child: Center(
+                    child: Text(
+                      entry.value,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: isSelected
+                            ? Colors.white
+                            : isWeekend
+                            ? const Color(0xFFED6A2E)
+                            : const Color(0xFF1A2233),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+        // Подсказка
+        if (_selectedDays.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Text(
+            _buildDaysHint(),
+            style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _quickBtn(
+    String label, {
+    required VoidCallback onTap,
+    required bool active,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: active
+              ? const Color(0xFFED6A2E).withOpacity(0.1)
+              : Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: active
+                ? const Color(0xFFED6A2E).withOpacity(0.4)
+                : Colors.grey.shade200,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: active ? const Color(0xFFED6A2E) : Colors.grey[600],
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _buildDaysHint() {
+    final sorted = _selectedDays.toList()..sort();
+    final names = sorted.map((d) => _dayLabels[d]!).join(', ');
+    return 'Выбрано: $names';
+  }
+
+  // ── TEACHER DROPDOWN ──────────────────────────────────────────────────────
   Widget _teacherDropdown() {
     return BlocBuilder<TeacherCubit, TeacherState>(
       builder: (context, state) {
-        // Юкланаётган пайт
         if (state is TeacherLoading) {
           return Container(
             height: 48,
@@ -460,7 +644,8 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
             ),
             child: const Center(
               child: SizedBox(
-                width: 20, height: 20,
+                width: 20,
+                height: 20,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
                   color: Color(0xFFED6A2E),
@@ -469,8 +654,6 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
             ),
           );
         }
-
-        // Хатолик бўлса
         if (state is TeacherError) {
           return GestureDetector(
             onTap: () => context.read<TeacherCubit>().getTeachers(),
@@ -486,8 +669,10 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                 children: [
                   Icon(Icons.error_outline, size: 16, color: Colors.red[400]),
                   const SizedBox(width: 8),
-                  Text('Ошибка. Нажмите для повтора',
-                      style: TextStyle(fontSize: 13, color: Colors.red[400])),
+                  Text(
+                    'Ошибка. Нажмите для повтора',
+                    style: TextStyle(fontSize: 13, color: Colors.red[400]),
+                  ),
                   const Spacer(),
                   Icon(Icons.refresh, size: 16, color: Colors.red[400]),
                 ],
@@ -512,9 +697,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
             child: DropdownButton<String>(
               value: _selectedTeacherId,
               hint: Text(
-                teachers.isEmpty
-                    ? 'Учителя не найдены'
-                    : 'Выберите учителя',
+                teachers.isEmpty ? 'Учителя не найдены' : 'Выберите учителя',
                 style: TextStyle(fontSize: 14, color: Colors.grey[400]),
               ),
               icon: Icon(Icons.keyboard_arrow_down, color: Colors.grey[500]),
@@ -524,15 +707,15 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                 final initials = name.trim().isNotEmpty
                     ? name.trim().split(' ').map((p) => p[0]).take(2).join()
                     : '?';
-
                 return DropdownMenuItem<String>(
-                  value: t.id,  // ← UUID API'га юборилади
+                  value: t.id,
                   child: Row(
                     children: [
                       CircleAvatar(
                         radius: 15,
-                        backgroundColor:
-                            const Color(0xFFED6A2E).withOpacity(0.12),
+                        backgroundColor: const Color(
+                          0xFFED6A2E,
+                        ).withOpacity(0.12),
                         child: Text(
                           initials.toUpperCase(),
                           style: const TextStyle(
@@ -549,7 +732,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(
-                              name,  // ← Исм-фамилия кўрсатилади
+                              name,
                               style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w500,
@@ -580,187 +763,168 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────
-
-  Widget _sectionTitle(String title) => Text(title,
-      style: const TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w800,
-          color: Color(0xFF1A2233)));
+  Widget _sectionTitle(String title) => Text(
+    title,
+    style: const TextStyle(
+      fontSize: 16,
+      fontWeight: FontWeight.w800,
+      color: Color(0xFF1A2233),
+    ),
+  );
 
   Widget _labeledField({required String label, required Widget child}) =>
-      Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(label,
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
             style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                color: Colors.grey[600])),
-        const SizedBox(height: 8),
-        child,
-      ]);
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: Colors.grey[600],
+            ),
+          ),
+          const SizedBox(height: 8),
+          child,
+        ],
+      );
 
   Widget _inputField({
     required TextEditingController controller,
     required String hint,
     bool isNumber = false,
-  }) =>
-      Container(
-        height: 48,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey.withOpacity(0.2)),
+  }) => Container(
+    height: 48,
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(12),
+      border: Border.all(color: Colors.grey.withOpacity(0.2)),
+    ),
+    child: TextField(
+      controller: controller,
+      keyboardType: isNumber ? TextInputType.number : TextInputType.text,
+      inputFormatters: isNumber ? [FilteringTextInputFormatter.digitsOnly] : [],
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle: TextStyle(fontSize: 13, color: Colors.grey[400]),
+        border: InputBorder.none,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: 13,
         ),
-        child: TextField(
-          controller: controller,
-          keyboardType: isNumber ? TextInputType.number : TextInputType.text,
-          inputFormatters:
-              isNumber ? [FilteringTextInputFormatter.digitsOnly] : [],
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: TextStyle(fontSize: 13, color: Colors.grey[400]),
-            border: InputBorder.none,
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-          ),
-        ),
-      );
+      ),
+    ),
+  );
 
   Widget _dropdownField({
     required String hint,
     required String? value,
     required Map<String, String> items,
     required ValueChanged<String?> onChanged,
-  }) =>
-      Container(
-        height: 48,
-        padding: const EdgeInsets.symmetric(horizontal: 14),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey.withOpacity(0.2)),
+  }) => Container(
+    height: 48,
+    padding: const EdgeInsets.symmetric(horizontal: 14),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(12),
+      border: Border.all(color: Colors.grey.withOpacity(0.2)),
+    ),
+    child: DropdownButtonHideUnderline(
+      child: DropdownButton<String>(
+        value: items.containsKey(value) ? value : null,
+        hint: Text(
+          hint,
+          style: TextStyle(fontSize: 14, color: Colors.grey[400]),
         ),
-        child: DropdownButtonHideUnderline(
-          child: DropdownButton<String>(
-            value: items.containsKey(value) ? value : null,
-            hint: Text(hint,
-                style: TextStyle(fontSize: 14, color: Colors.grey[400])),
-            icon: Icon(Icons.keyboard_arrow_down, color: Colors.grey[500]),
-            isExpanded: true,
-            items: items.entries
-                .map((e) => DropdownMenuItem(
-                    value: e.key,
-                    child:
-                        Text(e.value, style: const TextStyle(fontSize: 14))))
-                .toList(),
-            onChanged: onChanged,
-          ),
-        ),
-      );
+        icon: Icon(Icons.keyboard_arrow_down, color: Colors.grey[500]),
+        isExpanded: true,
+        items: items.entries
+            .map(
+              (e) => DropdownMenuItem(
+                value: e.key,
+                child: Text(e.value, style: const TextStyle(fontSize: 14)),
+              ),
+            )
+            .toList(),
+        onChanged: onChanged,
+      ),
+    ),
+  );
 
-  Widget _timeField(BuildContext context,
-          {required TimeOfDay? time, required ValueChanged<TimeOfDay> onPick}) =>
-      GestureDetector(
-        onTap: () async {
-          final t = await showTimePicker(
-              context: context, initialTime: TimeOfDay.now());
-          if (t != null) onPick(t);
-        },
-        child: Container(
-          height: 48,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey.withOpacity(0.2)),
-          ),
-          child: Row(children: [
-            const SizedBox(width: 14),
-            Expanded(
-              child: Text(
-                time != null ? _fmt(time) : '--:--',
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w500,
-                  color: time != null ? const Color(0xFF1A2233) : Colors.grey[400],
-                ),
+  Widget _timeField(
+    BuildContext context, {
+    required TimeOfDay? time,
+    required ValueChanged<TimeOfDay> onPick,
+  }) => GestureDetector(
+    onTap: () async {
+      final t = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay.now(),
+      );
+      if (t != null) onPick(t);
+    },
+    child: Container(
+      height: 48,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.withOpacity(0.2)),
+      ),
+      child: Row(
+        children: [
+          const SizedBox(width: 14),
+          Expanded(
+            child: Text(
+              time != null ? _fmt(time) : '--:--',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
+                color: time != null
+                    ? const Color(0xFF1A2233)
+                    : Colors.grey[400],
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.only(right: 12),
-              child: Icon(Icons.access_time, size: 18, color: Colors.grey[400]),
-            ),
-          ]),
-        ),
-      );
-
-  Widget _dateField({
-    required TextEditingController controller,
-    required String hint,
-  }) =>
-      GestureDetector(
-        onTap: () async {
-          final now = DateTime.now();
-          final picked = await showDatePicker(
-            context: context,
-            initialDate: now,
-            firstDate: DateTime(2020),
-            lastDate: DateTime(2030),
-          );
-          if (picked != null) controller.text = _fmtDate(picked);
-        },
-        child: Container(
-          height: 48,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey.withOpacity(0.2)),
           ),
-          child: ValueListenableBuilder<TextEditingValue>(
-            valueListenable: controller,
-            builder: (_, value, __) => Row(children: [
-              const SizedBox(width: 12),
-              Icon(Icons.calendar_today, size: 16, color: Colors.grey[400]),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  value.text.isEmpty ? hint : value.text,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: value.text.isEmpty
-                        ? Colors.grey[400]
-                        : const Color(0xFF1A2233),
-                  ),
-                ),
-              ),
-            ]),
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: Icon(Icons.access_time, size: 18, color: Colors.grey[400]),
           ),
-        ),
-      );
+        ],
+      ),
+    ),
+  );
 
   Widget _rateToggleBtn(String label, TeacherRateType type) => Expanded(
-        child: GestureDetector(
-          onTap: () => setState(() => _rateType = type),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 150),
-            margin: const EdgeInsets.all(4),
-            decoration: BoxDecoration(
-              color: _rateType == type ? Colors.white : Colors.transparent,
-              borderRadius: BorderRadius.circular(9),
-              boxShadow: _rateType == type
-                  ? [BoxShadow(
-                      color: Colors.black.withOpacity(0.06), blurRadius: 6)]
-                  : [],
-            ),
-            child: Center(
-              child: Text(label,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: _rateType == type
-                        ? const Color(0xFF1A2233)
-                        : Colors.grey[500],
-                  )),
+    child: GestureDetector(
+      onTap: () => setState(() => _rateType = type),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        margin: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          color: _rateType == type ? Colors.white : Colors.transparent,
+          borderRadius: BorderRadius.circular(9),
+          boxShadow: _rateType == type
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.06),
+                    blurRadius: 6,
+                  ),
+                ]
+              : [],
+        ),
+        child: Center(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: _rateType == type
+                  ? const Color(0xFF1A2233)
+                  : Colors.grey[500],
             ),
           ),
         ),
-      );
+      ),
+    ),
+  );
 }

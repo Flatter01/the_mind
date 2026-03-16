@@ -55,7 +55,7 @@ class _AttendanceChartState extends State<AttendanceChart> {
           Row(
             children: [
               _legend(
-                Colors.blue,
+                Colors.orange,
                 "Absent",
                 isActive: showAbsentOnly,
                 onTap: () {
@@ -67,7 +67,7 @@ class _AttendanceChartState extends State<AttendanceChart> {
               ),
               const SizedBox(width: 16),
               _legend(
-                Colors.green,
+                Colors.orangeAccent,
                 "Attended",
                 isActive: showAttendedOnly,
                 onTap: () {
@@ -163,7 +163,7 @@ class _AttendanceChartState extends State<AttendanceChart> {
           BarChartRodData(
             toY: showAbsent,
             width: 10,
-            color: Colors.blue,
+            color: Colors.orange,
             borderRadius: const BorderRadius.only(
               topLeft: Radius.circular(4),
               topRight: Radius.circular(4),
@@ -172,7 +172,7 @@ class _AttendanceChartState extends State<AttendanceChart> {
           BarChartRodData(
             toY: showAttended,
             width: 10,
-            color: Colors.green,
+            color: Colors.orangeAccent[100],
             borderRadius: const BorderRadius.only(
               topLeft: Radius.circular(4),
               topRight: Radius.circular(4),

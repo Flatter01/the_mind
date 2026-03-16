@@ -4,10 +4,10 @@ import 'package:srm/src/the_mind/the_mind_exams/data/models/exam_model.dart';
 
 class ExamApiService {
   final Dio _dio = DioConfig.client;
+
   Future<List<ExamModel>> getExams() async {
     try {
-      final response = await _dio.get("/exam/exams");
-
+      final response = await _dio.get("/exam/exams/");
       final data = response.data;
 
       if (data is List) {
@@ -15,59 +15,61 @@ class ExamApiService {
             .map((e) => ExamModel.fromJson(e as Map<String, dynamic>))
             .toList();
       }
-
       if (data is Map && data["results"] is List) {
         return (data["results"] as List)
             .map((e) => ExamModel.fromJson(e as Map<String, dynamic>))
             .toList();
       }
-
       throw Exception("Unknown API format: $data");
     } catch (e) {
       throw Exception("Exam GET error: $e");
     }
   }
 
-  /// POST EXAM
   Future<void> createExam({
     required String title,
-    required String date,
+    required String teacher,
     required int group,
+    required String examDate,
+    required String startTime,
+    required String endTime,
+    required int passScore,
+    required bool isPercentage,
+    required bool isActive,
+    required String createdBy,
   }) async {
     try {
       final response = await _dio.post(
         "/exam/exams/",
-        data: {"title": title, "date": date, "group": group},
+        data: {
+          "title": title,
+          "group": group,
+          "teacher": teacher,
+          "exam_date": examDate,
+          "start_time": startTime,
+          "end_time": endTime,
+          "pass_score": passScore,
+          "is_percentage": isPercentage,
+          "is_active": isActive,
+          "created_by": createdBy,
+        },
       );
-
       if (response.statusCode != 200 && response.statusCode != 201) {
         throw Exception("Ошибка создания экзамена");
       }
-    } catch (e) {
-      if (e is DioException) {
-        print("STATUS: ${e.response?.statusCode}");
-        print("DATA: ${e.response?.data}");
-      }
-
-      throw Exception("Exam POST error: $e");
+    } on DioException catch (e) {
+      throw Exception("Exam POST error: ${e.response?.data ?? e.message}");
     }
   }
 
-  /// DELETE EXAM
-  Future<void> deleteExam(int id) async {
+  Future<void> deleteExam(String id) async {
     try {
-      final response = await _dio.delete("/exam/$id/");
-
+      final response = await _dio.delete("/exam/exams/$id/");
       if (response.statusCode != 200 && response.statusCode != 204) {
         throw Exception("Ошибка удаления экзамена");
       }
-    } catch (e) {
-      if (e is DioException) {
-        print("STATUS: ${e.response?.statusCode}");
-        print("DATA: ${e.response?.data}");
-      }
-
-      throw Exception("Exam DELETE error: $e");
+    } on DioException catch (e) {
+      throw Exception("Exam DELETE error: ${e.response?.data ?? e.message}");
     }
   }
 }

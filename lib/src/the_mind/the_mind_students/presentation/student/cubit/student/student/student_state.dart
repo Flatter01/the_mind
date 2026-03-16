@@ -1,5 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:srm/src/the_mind/the_mind_students/data/model/students/student_model.dart';
+import 'package:srm/src/the_mind/the_mind_students/data/model/students/student_record_model.dart';
+import 'package:srm/src/the_mind/the_mind_students/data/model/students/student_record_model.dart';
 
 abstract class StudentState extends Equatable {
   @override
@@ -24,4 +26,12 @@ class StudentError extends StudentState {
 
   @override
   List<Object?> get props => [message];
+}
+
+class StudentJournalLoaded extends StudentState {
+  final List<StudentRecordModel> journalStudents;
+  StudentJournalLoaded({required this.journalStudents});
+
+  @override
+  List<Object?> get props => [journalStudents];
 }

@@ -33,12 +33,13 @@ class StudentCubit extends Cubit<StudentState> {
     required String teacherName,
     required String source,
     String? notes,
-    String? groupId,
+    int? groupIntId, // ← int id для /group/student-groups/
   }) async {
     if (isClosed) return;
     emit(StudentLoading());
     try {
-      await repository.createStudent(
+      // 1. Создаём студента без group_id
+      final studentId = await repository.createStudent(
         groupName: groupName,
         teacherName: teacherName,
         firstName: firstName,
@@ -51,11 +52,56 @@ class StudentCubit extends Cubit<StudentState> {
         district: district,
         source: source,
         notes: notes,
+      );
+
+      // 2. Назначаем группу отдельно если выбрана
+      if (groupIntId != null) {
+        await repository.assignGroupToStudent(
+          studentId: studentId,
+          groupId: groupIntId,
+        );
+      }
+
+      if (isClosed) return;
+      await getStudents();
+    } catch (e) {
+      if (isClosed) return;
+      emit(StudentError(message: e.toString()));
+    }
+  }
+
+  Future<void> deleteStudent(int studentId) async {
+    if (isClosed) return;
+
+    emit(StudentLoading());
+
+    try {
+      await repository.deleteStudent(studentId);
+
+      if (isClosed) return;
+
+      await getStudents(); // обновляем список после удаления
+    } catch (e) {
+      if (isClosed) return;
+      emit(StudentError(message: e.toString()));
+    }
+  }
+
+  Future<void> getJournalStudents({
+    required int groupId,
+    required String lessonDate,
+    required String teacherId,
+  }) async {
+    if (isClosed) return;
+    emit(StudentLoading());
+    try {
+      final journalStudents = await repository.getJournalStudents(
         groupId: groupId,
+        lessonDate: lessonDate,
+        teacherId: teacherId,
       );
       if (isClosed) return;
-      // После добавления обновляем список
-      await getStudents();
+      emit(StudentJournalLoaded(journalStudents: journalStudents));
     } catch (e) {
       if (isClosed) return;
       emit(StudentError(message: e.toString()));

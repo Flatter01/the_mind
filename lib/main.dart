@@ -13,7 +13,8 @@ import 'package:srm/src/the_mind/the_mind_group/presentation/cubit/group/group_c
 import 'package:srm/src/the_mind/the_mind_students/data/datasources/student_api_payment_servise.dart';
 import 'package:srm/src/the_mind/the_mind_students/data/datasources/student_api_service.dart';
 import 'package:srm/src/the_mind/the_mind_students/presentation/student/cubit/payment/payment_cubit.dart';
-import 'package:srm/src/the_mind/the_mind_students/presentation/student/cubit/student/student_cubit.dart';
+import 'package:srm/src/the_mind/the_mind_students/presentation/student/cubit/student/dashboard/dashboard_cubit.dart';
+import 'package:srm/src/the_mind/the_mind_students/presentation/student/cubit/student/student/student_cubit.dart';
 import 'package:srm/src/the_mind/the_mind_teacher/data/teacher_repository.dart';
 import 'package:srm/src/the_mind/the_mind_teacher/presentation/cubit/teacher_cubit.dart';
 
@@ -33,6 +34,10 @@ void main() async {
         BlocProvider(
           create: (context) =>
               GroupCubit(repository: GroupRepository())..getGroups(),
+        ),
+        BlocProvider(
+          create: (context) =>
+              DashboardCubit(),
         ),
         BlocProvider(
           create: (context) =>
