@@ -33,8 +33,7 @@ void main() async {
                 ..getPayments(),
         ),
         BlocProvider(
-          create: (context) =>
-              JournalCubit(repository: StudentRepository()),
+          create: (context) => JournalCubit(repository: StudentRepository()),
         ),
         BlocProvider(
           create: (context) =>
@@ -50,7 +49,8 @@ void main() async {
         ),
         // main.dart ёки providers файлида:
         BlocProvider(
-          create: (_) => TeacherCubit(repository: TeacherRepository()),
+          create: (_) =>
+              TeacherCubit(repository: TeacherRepository())..getTeachers(),
         ),
       ],
       child: MyApp(),

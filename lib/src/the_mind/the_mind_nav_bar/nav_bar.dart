@@ -27,7 +27,7 @@ import 'package:srm/src/the_mind/the_mind_students/presentation/student/widgets/
 import 'package:srm/src/the_mind/the_mind_task/the_mind_task_page.dart';
 import 'package:srm/src/the_mind/the_mind_teacher/presentation/the_mind_teacher_page.dart';
 import 'package:srm/src/the_mind/the_mind_transactions/presentation/transactions_page.dart';
-import 'package:srm/src/the_mind/the_mind_workers/the_mind_workers_page.dart';
+import 'package:srm/src/the_mind/the_mind_workers/presentation/the_mind_workers_page.dart';
 import 'package:srm/src/the_mind/the_mind_nav_bar/side_menu.dart';
 
 class WebCustomBottomNav extends StatefulWidget {

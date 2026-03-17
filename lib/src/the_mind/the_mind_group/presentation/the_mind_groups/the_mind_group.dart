@@ -188,6 +188,7 @@ class _TheMindGroupState extends State<TheMindGroup> {
                     return const Center(child: CircularProgressIndicator(color: Color(0xFFED6A2E)));
                   }
                   if (state is GroupError) {
+                    print(state.message);
                     return Center(child: Text(state.message));
                   }
                   if (state is GroupLoaded) {

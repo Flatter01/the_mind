@@ -18,7 +18,6 @@ class CreateGroupPage extends StatefulWidget {
 
 class _CreateGroupPageState extends State<CreateGroupPage> {
   final _groupName = TextEditingController();
-  final _studentLimit = TextEditingController();
   final _studentPrice = TextEditingController();
   final _teacherRate = TextEditingController(text: '0');
   final _roomCtrl = TextEditingController(text: '0');
@@ -30,7 +29,10 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
   TimeOfDay? _endTime;
   bool _isActive = true;
 
-  // ── Дни недели: 1=Пн … 7=Вс ──
+  // ✅ Обязательные даты
+  DateTime? _startDate;
+  DateTime? _endDate;
+
   final Set<int> _selectedDays = {};
 
   static const _dayLabels = {
@@ -43,26 +45,29 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
     7: 'Вс',
   };
 
-  // Чётные = Вт, Чт, Сб (2,4,6)
-  // Нечётные = Пн, Ср, Пт (1,3,5)
   void _selectOdd() => setState(() {
-    _selectedDays.clear();
-    _selectedDays.addAll([1, 3, 5]);
-  });
+        _selectedDays.clear();
+        _selectedDays.addAll([1, 3, 5]);
+      });
+
   void _selectEven() => setState(() {
-    _selectedDays.clear();
-    _selectedDays.addAll([2, 4, 6]);
-  });
+        _selectedDays.clear();
+        _selectedDays.addAll([2, 4, 6]);
+      });
+
   void _selectAll() => setState(() {
-    _selectedDays.addAll([1, 2, 3, 4, 5, 6, 7]);
-  });
+        _selectedDays.addAll([1, 2, 3, 4, 5, 6, 7]);
+      });
+
   void _clearDays() => setState(() => _selectedDays.clear());
 
-  // Итоговая строка для API, например "1,3,5"
-  String get _weekDaysValue {
+  List<int> get _weekDaysList {
     final sorted = _selectedDays.toList()..sort();
-    return sorted.join(',');
+    return sorted;
   }
+
+  String _fmtDate(DateTime d) =>
+      '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
   final Map<String, String> _levels = const {
     'beginner': 'Начинающий (Beginner)',
@@ -76,12 +81,14 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
   void initState() {
     super.initState();
     context.read<TeacherCubit>().getTeachers();
+    // Ставим дату по умолчанию — сегодня
+    _startDate = DateTime.now();
+    _endDate = DateTime.now().add(const Duration(days: 30));
   }
 
   @override
   void dispose() {
     _groupName.dispose();
-    _studentLimit.dispose();
     _studentPrice.dispose();
     _teacherRate.dispose();
     _roomCtrl.dispose();
@@ -113,28 +120,40 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
       _showError(context, 'Выберите дни недели');
       return;
     }
+    if (_startDate == null) {
+      _showError(context, 'Укажите дату начала');
+      return;
+    }
 
-    final sortedDays = _selectedDays.toList()..sort();
+    // ✅ Валидация цены — максимум 8 цифр до запятой
+    final priceText = _studentPrice.text.trim();
+    if (priceText.isNotEmpty) {
+      final priceVal = double.tryParse(priceText) ?? 0;
+      if (priceVal >= 100000000) {
+        _showError(context, 'Цена слишком большая (макс. 99 999 999)');
+        return;
+      }
+    }
 
     await context.read<GroupCubit>().createGroup(
-      name: _groupName.text.trim(),
-      level: _selectedLevel!,
-      teacher: _selectedTeacherId!,
-      room: int.tryParse(_roomCtrl.text) ?? 0,
-      price: _studentPrice.text.trim(),
-      weekDays: sortedDays.join(','), // "1,3,5" или "2,4,6"
-      startTime: _fmt(_startTime!),
-      endTime: _fmt(_endTime!),
-      isActive: _isActive,
-      startDate: '',
-      endDate: '',
-    );
+          name: _groupName.text.trim(),
+          level: _selectedLevel!,
+          teacher: _selectedTeacherId!,
+          room: int.tryParse(_roomCtrl.text) ?? 0,
+          price: priceText.isEmpty ? '0' : priceText,
+          weekDays: _weekDaysList,
+          startTime: _fmt(_startTime!),
+          endTime: _fmt(_endTime!),
+          isActive: _isActive,
+          startDate: _fmtDate(_startDate!),         // ✅ обязательное
+          endDate: _endDate != null ? _fmtDate(_endDate!) : '',
+        );
   }
 
   void _showError(BuildContext context, String msg) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(msg), backgroundColor: Colors.red));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg), backgroundColor: Colors.red),
+    );
   }
 
   @override
@@ -241,7 +260,6 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Время
                       Expanded(
                         child: _labeledField(
                           label: 'Время занятий *',
@@ -251,7 +269,8 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                                 child: _timeField(
                                   context,
                                   time: _startTime,
-                                  onPick: (t) => setState(() => _startTime = t),
+                                  onPick: (t) =>
+                                      setState(() => _startTime = t),
                                 ),
                               ),
                               Padding(
@@ -270,21 +289,49 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                                 child: _timeField(
                                   context,
                                   time: _endTime,
-                                  onPick: (t) => setState(() => _endTime = t),
+                                  onPick: (t) =>
+                                      setState(() => _endTime = t),
                                 ),
                               ),
                             ],
                           ),
                         ),
                       ),
-
                       const SizedBox(width: 20),
-
-                      // Дни недели
                       Expanded(
                         child: _labeledField(
                           label: 'Дни занятий *',
                           child: _weekDaySelector(),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // ✅ Даты начала и конца
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: _labeledField(
+                          label: 'Дата начала *',
+                          child: _datePicker(
+                            date: _startDate,
+                            hint: 'Выберите дату',
+                            onPick: (d) => setState(() => _startDate = d),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 20),
+                      Expanded(
+                        child: _labeledField(
+                          label: 'Дата окончания',
+                          child: _datePicker(
+                            date: _endDate,
+                            hint: 'Необязательно',
+                            onPick: (d) => setState(() => _endDate = d),
+                          ),
                         ),
                       ),
                     ],
@@ -301,7 +348,8 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                     children: [
                       Expanded(
                         child: _labeledField(
-                          label: 'Цена (сум/месяц)',
+                          // ✅ Подсказка о максимальной цене
+                          label: 'Цена (сум/месяц, макс. 99 999 999)',
                           child: _inputField(
                             controller: _studentPrice,
                             hint: '500000',
@@ -486,27 +534,95 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
     );
   }
 
+  // ── Дата-пикер ────────────────────────────────────────────────────────────
+
+  Widget _datePicker({
+    required DateTime? date,
+    required String hint,
+    required ValueChanged<DateTime> onPick,
+  }) {
+    return GestureDetector(
+      onTap: () async {
+        final now = DateTime.now();
+        final picked = await showDatePicker(
+          context: context,
+          initialDate: date ?? now,
+          firstDate: DateTime(2020),
+          lastDate: DateTime(2030),
+          builder: (ctx, child) => Theme(
+            data: Theme.of(ctx).copyWith(
+              colorScheme: const ColorScheme.light(
+                primary: Color(0xFFED6A2E),
+              ),
+            ),
+            child: child!,
+          ),
+        );
+        if (picked != null) onPick(picked);
+      },
+      child: Container(
+        height: 48,
+        decoration: BoxDecoration(
+          color: date != null
+              ? const Color(0xFFFFF3EE)
+              : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: date != null
+                ? const Color(0xFFED6A2E).withOpacity(0.3)
+                : Colors.grey.withOpacity(0.2),
+          ),
+        ),
+        child: Row(
+          children: [
+            const SizedBox(width: 14),
+            Icon(
+              Icons.calendar_today_outlined,
+              size: 16,
+              color: date != null
+                  ? const Color(0xFFED6A2E)
+                  : Colors.grey[400],
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                date != null ? _fmtDate(date) : hint,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: date != null
+                      ? FontWeight.w600
+                      : FontWeight.w400,
+                  color: date != null
+                      ? const Color(0xFF1A2233)
+                      : Colors.grey[400],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   // ── ВЫБОР ДНЕЙ НЕДЕЛИ ─────────────────────────────────────────────────────
+
   Widget _weekDaySelector() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Быстрые кнопки
         Row(
           children: [
             _quickBtn(
               'Нечётные',
               onTap: _selectOdd,
-              active:
-                  _selectedDays.containsAll([1, 3, 5]) &&
+              active: _selectedDays.containsAll([1, 3, 5]) &&
                   !_selectedDays.contains(2),
             ),
             const SizedBox(width: 8),
             _quickBtn(
               'Чётные',
               onTap: _selectEven,
-              active:
-                  _selectedDays.containsAll([2, 4, 6]) &&
+              active: _selectedDays.containsAll([2, 4, 6]) &&
                   !_selectedDays.contains(1),
             ),
             const SizedBox(width: 8),
@@ -527,7 +643,6 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
           ],
         ),
         const SizedBox(height: 10),
-        // Кнопки дней
         Row(
           children: _dayLabels.entries.map((entry) {
             final isSelected = _selectedDays.contains(entry.key);
@@ -549,15 +664,15 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                     color: isSelected
                         ? const Color(0xFFED6A2E)
                         : isWeekend
-                        ? const Color(0xFFFFF3EE)
-                        : Colors.white,
+                            ? const Color(0xFFFFF3EE)
+                            : Colors.white,
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(
                       color: isSelected
                           ? const Color(0xFFED6A2E)
                           : isWeekend
-                          ? const Color(0xFFED6A2E).withOpacity(0.2)
-                          : Colors.grey.withOpacity(0.2),
+                              ? const Color(0xFFED6A2E).withOpacity(0.2)
+                              : Colors.grey.withOpacity(0.2),
                     ),
                   ),
                   child: Center(
@@ -569,8 +684,8 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                         color: isSelected
                             ? Colors.white
                             : isWeekend
-                            ? const Color(0xFFED6A2E)
-                            : const Color(0xFF1A2233),
+                                ? const Color(0xFFED6A2E)
+                                : const Color(0xFF1A2233),
                       ),
                     ),
                   ),
@@ -579,7 +694,6 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
             );
           }).toList(),
         ),
-        // Подсказка
         if (_selectedDays.isNotEmpty) ...[
           const SizedBox(height: 8),
           Text(
@@ -631,6 +745,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
   }
 
   // ── TEACHER DROPDOWN ──────────────────────────────────────────────────────
+
   Widget _teacherDropdown() {
     return BlocBuilder<TeacherCubit, TeacherState>(
       builder: (context, state) {
@@ -700,12 +815,20 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                 teachers.isEmpty ? 'Учителя не найдены' : 'Выберите учителя',
                 style: TextStyle(fontSize: 14, color: Colors.grey[400]),
               ),
-              icon: Icon(Icons.keyboard_arrow_down, color: Colors.grey[500]),
+              icon: Icon(
+                Icons.keyboard_arrow_down,
+                color: Colors.grey[500],
+              ),
               isExpanded: true,
               items: teachers.map((t) {
                 final name = t.fullName ?? t.username ?? '—';
                 final initials = name.trim().isNotEmpty
-                    ? name.trim().split(' ').map((p) => p[0]).take(2).join()
+                    ? name
+                        .trim()
+                        .split(' ')
+                        .map((p) => p.isNotEmpty ? p[0] : '')
+                        .take(2)
+                        .join()
                     : '?';
                 return DropdownMenuItem<String>(
                   value: t.id,
@@ -713,9 +836,8 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                     children: [
                       CircleAvatar(
                         radius: 15,
-                        backgroundColor: const Color(
-                          0xFFED6A2E,
-                        ).withOpacity(0.12),
+                        backgroundColor:
+                            const Color(0xFFED6A2E).withOpacity(0.12),
                         child: Text(
                           initials.toUpperCase(),
                           style: const TextStyle(
@@ -754,7 +876,8 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                   ),
                 );
               }).toList(),
-              onChanged: (uuid) => setState(() => _selectedTeacherId = uuid),
+              onChanged: (uuid) =>
+                  setState(() => _selectedTeacherId = uuid),
             ),
           ),
         );
@@ -763,16 +886,20 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────
-  Widget _sectionTitle(String title) => Text(
-    title,
-    style: const TextStyle(
-      fontSize: 16,
-      fontWeight: FontWeight.w800,
-      color: Color(0xFF1A2233),
-    ),
-  );
 
-  Widget _labeledField({required String label, required Widget child}) =>
+  Widget _sectionTitle(String title) => Text(
+        title,
+        style: const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w800,
+          color: Color(0xFF1A2233),
+        ),
+      );
+
+  Widget _labeledField({
+    required String label,
+    required Widget child,
+  }) =>
       Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -793,138 +920,149 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
     required TextEditingController controller,
     required String hint,
     bool isNumber = false,
-  }) => Container(
-    height: 48,
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: Colors.grey.withOpacity(0.2)),
-    ),
-    child: TextField(
-      controller: controller,
-      keyboardType: isNumber ? TextInputType.number : TextInputType.text,
-      inputFormatters: isNumber ? [FilteringTextInputFormatter.digitsOnly] : [],
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: TextStyle(fontSize: 13, color: Colors.grey[400]),
-        border: InputBorder.none,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 14,
-          vertical: 13,
+  }) =>
+      Container(
+        height: 48,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.withOpacity(0.2)),
         ),
-      ),
-    ),
-  );
+        child: TextField(
+          controller: controller,
+          keyboardType: isNumber ? TextInputType.number : TextInputType.text,
+          inputFormatters:
+              isNumber ? [FilteringTextInputFormatter.digitsOnly] : [],
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: TextStyle(fontSize: 13, color: Colors.grey[400]),
+            border: InputBorder.none,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: 13,
+            ),
+          ),
+        ),
+      );
 
   Widget _dropdownField({
     required String hint,
     required String? value,
     required Map<String, String> items,
     required ValueChanged<String?> onChanged,
-  }) => Container(
-    height: 48,
-    padding: const EdgeInsets.symmetric(horizontal: 14),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: Colors.grey.withOpacity(0.2)),
-    ),
-    child: DropdownButtonHideUnderline(
-      child: DropdownButton<String>(
-        value: items.containsKey(value) ? value : null,
-        hint: Text(
-          hint,
-          style: TextStyle(fontSize: 14, color: Colors.grey[400]),
+  }) =>
+      Container(
+        height: 48,
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.withOpacity(0.2)),
         ),
-        icon: Icon(Icons.keyboard_arrow_down, color: Colors.grey[500]),
-        isExpanded: true,
-        items: items.entries
-            .map(
-              (e) => DropdownMenuItem(
-                value: e.key,
-                child: Text(e.value, style: const TextStyle(fontSize: 14)),
-              ),
-            )
-            .toList(),
-        onChanged: onChanged,
-      ),
-    ),
-  );
+        child: DropdownButtonHideUnderline(
+          child: DropdownButton<String>(
+            value: items.containsKey(value) ? value : null,
+            hint: Text(
+              hint,
+              style: TextStyle(fontSize: 14, color: Colors.grey[400]),
+            ),
+            icon: Icon(Icons.keyboard_arrow_down, color: Colors.grey[500]),
+            isExpanded: true,
+            items: items.entries
+                .map(
+                  (e) => DropdownMenuItem(
+                    value: e.key,
+                    child: Text(
+                      e.value,
+                      style: const TextStyle(fontSize: 14),
+                    ),
+                  ),
+                )
+                .toList(),
+            onChanged: onChanged,
+          ),
+        ),
+      );
 
   Widget _timeField(
     BuildContext context, {
     required TimeOfDay? time,
     required ValueChanged<TimeOfDay> onPick,
-  }) => GestureDetector(
-    onTap: () async {
-      final t = await showTimePicker(
-        context: context,
-        initialTime: TimeOfDay.now(),
+  }) =>
+      GestureDetector(
+        onTap: () async {
+          final t = await showTimePicker(
+            context: context,
+            initialTime: TimeOfDay.now(),
+          );
+          if (t != null) onPick(t);
+        },
+        child: Container(
+          height: 48,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.grey.withOpacity(0.2)),
+          ),
+          child: Row(
+            children: [
+              const SizedBox(width: 14),
+              Expanded(
+                child: Text(
+                  time != null ? _fmt(time) : '--:--',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                    color: time != null
+                        ? const Color(0xFF1A2233)
+                        : Colors.grey[400],
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: Icon(
+                  Icons.access_time,
+                  size: 18,
+                  color: Colors.grey[400],
+                ),
+              ),
+            ],
+          ),
+        ),
       );
-      if (t != null) onPick(t);
-    },
-    child: Container(
-      height: 48,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.withOpacity(0.2)),
-      ),
-      child: Row(
-        children: [
-          const SizedBox(width: 14),
-          Expanded(
-            child: Text(
-              time != null ? _fmt(time) : '--:--',
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w500,
-                color: time != null
-                    ? const Color(0xFF1A2233)
-                    : Colors.grey[400],
+
+  Widget _rateToggleBtn(String label, TeacherRateType type) => Expanded(
+        child: GestureDetector(
+          onTap: () => setState(() => _rateType = type),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            margin: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: _rateType == type ? Colors.white : Colors.transparent,
+              borderRadius: BorderRadius.circular(9),
+              boxShadow: _rateType == type
+                  ? [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.06),
+                        blurRadius: 6,
+                      ),
+                    ]
+                  : [],
+            ),
+            child: Center(
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: _rateType == type
+                      ? const Color(0xFF1A2233)
+                      : Colors.grey[500],
+                ),
               ),
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: Icon(Icons.access_time, size: 18, color: Colors.grey[400]),
-          ),
-        ],
-      ),
-    ),
-  );
-
-  Widget _rateToggleBtn(String label, TeacherRateType type) => Expanded(
-    child: GestureDetector(
-      onTap: () => setState(() => _rateType = type),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        margin: const EdgeInsets.all(4),
-        decoration: BoxDecoration(
-          color: _rateType == type ? Colors.white : Colors.transparent,
-          borderRadius: BorderRadius.circular(9),
-          boxShadow: _rateType == type
-              ? [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.06),
-                    blurRadius: 6,
-                  ),
-                ]
-              : [],
         ),
-        child: Center(
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: _rateType == type
-                  ? const Color(0xFF1A2233)
-                  : Colors.grey[500],
-            ),
-          ),
-        ),
-      ),
-    ),
-  );
+      );
 }

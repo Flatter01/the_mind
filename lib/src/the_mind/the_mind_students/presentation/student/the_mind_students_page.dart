@@ -1,4 +1,3 @@
-// the_mind_students_page.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:srm/src/core/colors/app_colors.dart';
@@ -91,9 +90,8 @@ class _TheMindStudentsPageState extends State<TheMindStudentsPage> {
   @override
   Widget build(BuildContext context) {
     final groupState = context.watch<GroupCubit>().state;
-    final groups = groupState is GroupLoaded
-        ? groupState.groups
-        : <GroupModel>[];
+    final groups =
+        groupState is GroupLoaded ? groupState.groups : <GroupModel>[];
 
     final groupNames = groups
         .map((g) => g.name ?? '')
@@ -118,40 +116,45 @@ class _TheMindStudentsPageState extends State<TheMindStudentsPage> {
           return TheMindStudentsPageShimmer();
         }
         if (state is StudentError) {
+          print(state.message);
           return Center(child: Text(state.message));
         }
         if (state is StudentLoaded) {
-          // ← Считаем аналитику локально после загрузки студентов
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (!mounted) return;
             context.read<DashboardCubit>().computeFromStudents(
-              students: state.students,
-              groupsCount: groups.length,
-            );
+                  students: state.students,
+                  groupsCount: groups.length,
+                );
           });
 
           final students = state.students;
 
           final filtered = students.where((s) {
             final q = _search.toLowerCase();
-            final matchSearch =
+
+            final matchSearch = _search.isEmpty ||
                 (s.firstName ?? '').toLowerCase().contains(q) ||
                 (s.lastName ?? '').toLowerCase().contains(q) ||
                 (s.phone ?? '').toLowerCase().contains(q) ||
                 (s.groupName ?? '').toLowerCase().contains(q);
-            final matchTeacher =
-                _selectedTeacher == null ||
+
+            final matchTeacher = _selectedTeacher == null ||
                 (s.teacherName ?? '') == _selectedTeacher;
-            final matchCourse =
-                _selectedCourse == null ||
-                (s.groupName ?? '').contains(_selectedCourse!);
-            final matchStatus =
-                _selectedStatus == null ||
+
+            final matchCourse = _selectedCourse == null ||
+                (s.groupName ?? '')
+                    .toLowerCase()
+                    .contains(_selectedCourse!.toLowerCase());
+
+            final matchStatus = _selectedStatus == null ||
                 s.status.toLowerCase() == _selectedStatus!.toLowerCase();
+
             return matchSearch && matchTeacher && matchCourse && matchStatus;
           }).toList();
 
-          final totalPages = (filtered.length / _perPage).ceil();
+          final totalPages =
+              (filtered.length / _perPage).ceil().clamp(1, 999);
           final pageStudents = filtered
               .skip((_currentPage - 1) * _perPage)
               .take(_perPage)
@@ -160,7 +163,8 @@ class _TheMindStudentsPageState extends State<TheMindStudentsPage> {
           return Scaffold(
             backgroundColor: AppColors.bgColor,
             body: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
               children: [
                 // ── Заголовок + кнопки ──
                 Row(
@@ -188,23 +192,24 @@ class _TheMindStudentsPageState extends State<TheMindStudentsPage> {
                     ),
                     const Spacer(),
 
-                    // Добавить платеж
+                    // ── Добавить платеж ──
                     OutlinedButton.icon(
-                      onPressed: () async {
+                      onPressed: () {
                         final paymentCubit = context.read<PaymentCubit>();
-                        await showDialog(
+                        final studentCubit = context.read<StudentCubit>();
+
+                        showDialog(
                           context: context,
                           barrierDismissible: false,
                           builder: (_) => BlocProvider.value(
                             value: paymentCubit,
-                            child: BlocBuilder<StudentCubit, StudentState>(
-                              builder: (context, state) {
-                                if (state is StudentLoaded) {
-                                  return AddPaymentDialogResponsive(
-                                    students: state.students,
-                                  );
-                                }
-                                return const SizedBox();
+                            child: AddPaymentDialogResponsive(
+                              students: students,
+                              // ✅ Колбэк — вызывается внутри диалога
+                              // сразу после PaymentSuccess
+                              onPaymentSuccess: () {
+                                // print('=== REFRESHING STUDENTS ===');
+                                studentCubit.getStudents();
                               },
                             ),
                           ),
@@ -226,7 +231,7 @@ class _TheMindStudentsPageState extends State<TheMindStudentsPage> {
                     ),
                     const SizedBox(width: 12),
 
-                    // Добавить студента
+                    // ── Добавить студента ──
                     ElevatedButton.icon(
                       onPressed: () async {
                         final studentCubit = context.read<StudentCubit>();
@@ -273,7 +278,7 @@ class _TheMindStudentsPageState extends State<TheMindStudentsPage> {
 
                 const SizedBox(height: 28),
 
-                // ── Аналитика из DashboardCubit ──
+                // ── Аналитика ──
                 BlocBuilder<DashboardCubit, DashboardState>(
                   builder: (context, dashState) {
                     if (dashState is DashboardInitial ||
@@ -283,7 +288,6 @@ class _TheMindStudentsPageState extends State<TheMindStudentsPage> {
                         child: Center(child: CircularProgressIndicator()),
                       );
                     }
-
                     if (dashState is DashboardError) {
                       return SizedBox(
                         height: 130,
@@ -295,17 +299,16 @@ class _TheMindStudentsPageState extends State<TheMindStudentsPage> {
                         ),
                       );
                     }
-
                     final analytics = dashState is DashboardLoaded
                         ? _buildAnalytics(dashState.dashboard)
                         : <AnalyticItem>[];
-
                     return SizedBox(
                       height: 130,
                       child: ListView.separated(
                         scrollDirection: Axis.horizontal,
                         itemCount: analytics.length,
-                        separatorBuilder: (_, __) => const SizedBox(width: 16),
+                        separatorBuilder: (_, __) =>
+                            const SizedBox(width: 16),
                         itemBuilder: (context, index) =>
                             AnalyticCard(item: analytics[index]),
                       ),

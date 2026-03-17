@@ -5,6 +5,8 @@ import 'package:srm/src/the_mind/the_mind_exams/data/models/exam_model.dart';
 import 'package:srm/src/the_mind/the_mind_exams/presentation/cubit/exam_cubit.dart';
 import 'package:srm/src/the_mind/the_mind_exams/presentation/widgets/add_exam_dialog.dart';
 import 'package:srm/src/the_mind/the_mind_exams/presentation/widgets/edit_exam_dialog.dart';
+import 'package:srm/src/the_mind/the_mind_group/presentation/cubit/group/group_cubit.dart';
+import 'package:srm/src/the_mind/the_mind_teacher/presentation/cubit/teacher_cubit.dart';
 
 IconData _iconForDirection(String direction) {
   if (direction.toLowerCase().contains('math') ||
@@ -56,7 +58,6 @@ class _TheMindExamsPageState extends State<TheMindExamsPage> {
       child: BlocBuilder<ExamCubit, ExamState>(
         builder: (context, state) {
           final exams = state is ExamLoaded ? state.exams : <ExamModel>[];
-          final teachers = exams.map((e) => e.teacherName).toSet().toList();
           final groups = exams.map((e) => e.groupName).toSet().toList();
 
           final filtered = _filtered(exams);
@@ -99,7 +100,8 @@ class _TheMindExamsPageState extends State<TheMindExamsPage> {
                       ),
                       const Spacer(),
                       ElevatedButton.icon(
-                        onPressed: () => _addExam(context, teachers, groups),
+                        // ✅ просто открываем диалог — он сам читает GroupCubit и TeacherCubit
+                        onPressed: () => _addExam(context),
                         icon: const Icon(
                           Icons.add_circle_outline,
                           color: Colors.white,
@@ -300,7 +302,6 @@ class _TheMindExamsPageState extends State<TheMindExamsPage> {
             ),
             const SizedBox(width: 16),
 
-            // Название + группа
             Expanded(
               flex: 3,
               child: Column(
@@ -333,7 +334,6 @@ class _TheMindExamsPageState extends State<TheMindExamsPage> {
               ),
             ),
 
-            // Преподаватель
             Expanded(
               flex: 2,
               child: Column(
@@ -361,7 +361,6 @@ class _TheMindExamsPageState extends State<TheMindExamsPage> {
               ),
             ),
 
-            // Дата
             Expanded(
               flex: 2,
               child: Column(
@@ -403,7 +402,6 @@ class _TheMindExamsPageState extends State<TheMindExamsPage> {
 
             const SizedBox(width: 12),
 
-            // Статус badge
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
@@ -600,36 +598,37 @@ class _TheMindExamsPageState extends State<TheMindExamsPage> {
       items: [
         PopupMenuItem(
           value: null,
-          child: const Text('Все группы'),
           onTap: () => setState(() {
             _selectedGroup = null;
             _currentPage = 1;
           }),
+          child: const Text('Все группы'),
         ),
         ...groups.map(
           (g) => PopupMenuItem(
             value: g,
-            child: Text(g),
             onTap: () => setState(() {
               _selectedGroup = g;
               _currentPage = 1;
             }),
+            child: Text(g),
           ),
         ),
       ],
     );
   }
 
-  void _addExam(
-    BuildContext context,
-    List<String> teachers,
-    List<String> groups,
-  ) {
+  // ✅ Диалог сам читает GroupCubit и TeacherCubit — никаких параметров не нужно
+  void _addExam(BuildContext context) {
     showDialog(
       context: context,
-      builder: (_) => BlocProvider.value(
-        value: context.read<ExamCubit>(),
-        child: AddExamDialog(teachers: teachers, groups: groups),
+      builder: (_) => MultiBlocProvider(
+        providers: [
+          BlocProvider.value(value: context.read<ExamCubit>()),
+          BlocProvider.value(value: context.read<GroupCubit>()),
+          BlocProvider.value(value: context.read<TeacherCubit>()),
+        ],
+        child: const AddExamDialog(),
       ),
     );
   }
@@ -646,7 +645,8 @@ class _TheMindExamsPageState extends State<TheMindExamsPage> {
   }
 }
 
-// ── Пагинация ──
+// ── Пагинация ─────────────────────────────────────────────────────────────────
+
 class _PaginationRow extends StatelessWidget {
   final int currentPage;
   final int totalPages;

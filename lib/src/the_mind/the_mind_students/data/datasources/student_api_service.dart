@@ -83,7 +83,7 @@ class StudentRepository {
     required String status,
     required String birthDate,
     required String gender,
-    required int district,
+    // required int district,
     required String groupName,
     required String teacherName,
     required String source,
@@ -96,7 +96,7 @@ class StudentRepository {
       "status": status,
       "birth_date": birthDate,
       "gender": gender,
-      "district": district,
+      // "district": district,
       "source": source,
       if (parentPhone != null && parentPhone.isNotEmpty)
         "parent_phone": parentPhone,

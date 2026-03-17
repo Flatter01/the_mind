@@ -1,17 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:srm/src/the_mind/the_mind_exams/data/models/exam_model.dart';
-import 'package:srm/src/the_mind/the_mind_exams/presentation/cubit/exam_cubit.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:srm/src/the_mind/the_mind_exams/presentation/cubit/exam_cubit.dart';
+import 'package:srm/src/the_mind/the_mind_group/presentation/cubit/group/group_cubit.dart';
+import 'package:srm/src/the_mind/the_mind_group/presentation/cubit/group/group_state.dart';
+import 'package:srm/src/the_mind/the_mind_teacher/presentation/cubit/teacher_cubit.dart';
+import 'package:srm/src/the_mind/the_mind_teacher/presentation/cubit/teacher_state.dart';
 
 class AddExamDialog extends StatefulWidget {
-  final List<String> teachers;
-  final List<String> groups;
-
-  const AddExamDialog({
-    super.key,
-    required this.groups,
-    required this.teachers,
-  });
+  const AddExamDialog({super.key});
 
   @override
   State<AddExamDialog> createState() => _AddExamDialogState();
@@ -21,8 +17,14 @@ class _AddExamDialogState extends State<AddExamDialog> {
   final titleController = TextEditingController();
   final passScoreController = TextEditingController(text: '0');
 
-  String? selectedGroup;
-  String? selectedTeacher;
+  // Храним выбранные значения как ID
+  int? selectedGroupId;       // GroupModel.id (int)
+  String? selectedTeacherId;  // TeacherModel.id (UUID String)
+
+  // Для отображения в дропдауне
+  String? selectedGroupName;
+  String? selectedTeacherName;
+
   DateTime? examDate;
   TimeOfDay? startTime;
   TimeOfDay? endTime;
@@ -56,10 +58,8 @@ class _AddExamDialogState extends State<AddExamDialog> {
 
               const SizedBox(height: 24),
 
-              // Название
               _buildField(titleController, 'Название экзамена'),
 
-              // Группа + Преподаватель
               Row(
                 children: [
                   Expanded(child: _buildGroupDropdown()),
@@ -68,30 +68,44 @@ class _AddExamDialogState extends State<AddExamDialog> {
                 ],
               ),
 
-              // Дата + Проходной балл
               Row(
                 children: [
                   Expanded(child: _buildDatePicker()),
                   const SizedBox(width: 16),
-                  Expanded(child: _buildField(passScoreController, 'Проходной балл')),
+                  Expanded(
+                    child: _buildField(passScoreController, 'Проходной балл'),
+                  ),
                 ],
               ),
 
-              // Начало + Конец
               Row(
                 children: [
-                  Expanded(child: _buildTimePicker('Начало', startTime, (t) => setState(() => startTime = t))),
+                  Expanded(
+                    child: _buildTimePicker(
+                      'Начало',
+                      startTime,
+                      (t) => setState(() => startTime = t),
+                    ),
+                  ),
                   const SizedBox(width: 16),
-                  Expanded(child: _buildTimePicker('Конец', endTime, (t) => setState(() => endTime = t))),
+                  Expanded(
+                    child: _buildTimePicker(
+                      'Конец',
+                      endTime,
+                      (t) => setState(() => endTime = t),
+                    ),
+                  ),
                 ],
               ),
 
-              // Переключатели
               Row(
                 children: [
                   Expanded(
                     child: SwitchListTile(
-                      title: const Text('В процентах', style: TextStyle(fontSize: 14)),
+                      title: const Text(
+                        'В процентах',
+                        style: TextStyle(fontSize: 14),
+                      ),
                       value: isPercentage,
                       onChanged: (v) => setState(() => isPercentage = v),
                       contentPadding: EdgeInsets.zero,
@@ -99,7 +113,10 @@ class _AddExamDialogState extends State<AddExamDialog> {
                   ),
                   Expanded(
                     child: SwitchListTile(
-                      title: const Text('Активен', style: TextStyle(fontSize: 14)),
+                      title: const Text(
+                        'Активен',
+                        style: TextStyle(fontSize: 14),
+                      ),
                       value: isActive,
                       onChanged: (v) => setState(() => isActive = v),
                       contentPadding: EdgeInsets.zero,
@@ -118,12 +135,16 @@ class _AddExamDialogState extends State<AddExamDialog> {
     );
   }
 
+  // ─── Поле ввода ────────────────────────────────────────────────────────────
+
   Widget _buildField(TextEditingController controller, String label) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: TextField(
         controller: controller,
-        keyboardType: label.contains('балл') ? TextInputType.number : TextInputType.text,
+        keyboardType: label.contains('балл')
+            ? TextInputType.number
+            : TextInputType.text,
         decoration: InputDecoration(
           labelText: label,
           filled: true,
@@ -137,49 +158,99 @@ class _AddExamDialogState extends State<AddExamDialog> {
     );
   }
 
+  // ─── Dropdown групп — данные из GroupCubit ─────────────────────────────────
+
   Widget _buildGroupDropdown() {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: DropdownButtonFormField<String>(
-        value: selectedGroup,
-        items: widget.groups
-            .map((g) => DropdownMenuItem(value: g, child: Text(g)))
-            .toList(),
-        onChanged: (v) => setState(() => selectedGroup = v),
-        decoration: InputDecoration(
-          labelText: 'Группа',
-          filled: true,
-          fillColor: const Color(0xFFF6F6F6),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
-            borderSide: BorderSide.none,
+    return BlocBuilder<GroupCubit, GroupState>(
+      builder: (context, state) {
+        final groups = state is GroupLoaded ? state.groups : [];
+
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: DropdownButtonFormField<int>(
+            value: selectedGroupId,
+            hint: state is GroupLoading
+                ? const Text('Загрузка...')
+                : const Text('Группа'),
+            items: groups
+                .where((g) => g.id != null && g.name != null)
+                .map(
+                  (g) => DropdownMenuItem<int>(
+                    value: g.id,               // ✅ int ID
+                    child: Text(g.name ?? ''),
+                  ),
+                )
+                .toList(),
+            onChanged: (id) {
+              if (id == null) return;
+              final group = groups.firstWhere((g) => g.id == id);
+              setState(() {
+                selectedGroupId = id;
+                selectedGroupName = group.name;
+              });
+            },
+            decoration: InputDecoration(
+              labelText: 'Группа',
+              filled: true,
+              fillColor: const Color(0xFFF6F6F6),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide.none,
+              ),
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
+  // ─── Dropdown учителей — данные из TeacherCubit ────────────────────────────
+
   Widget _buildTeacherDropdown() {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: DropdownButtonFormField<String>(
-        value: selectedTeacher,
-        items: widget.teachers
-            .map((t) => DropdownMenuItem(value: t, child: Text(t)))
-            .toList(),
-        onChanged: (v) => setState(() => selectedTeacher = v),
-        decoration: InputDecoration(
-          labelText: 'Преподаватель',
-          filled: true,
-          fillColor: const Color(0xFFF6F6F6),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
-            borderSide: BorderSide.none,
+    return BlocBuilder<TeacherCubit, TeacherState>(
+      builder: (context, state) {
+        final teachers = state is TeacherLoaded ? state.teachers : [];
+
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: DropdownButtonFormField<String>(
+            value: selectedTeacherId,
+            hint: state is TeacherLoading
+                ? const Text('Загрузка...')
+                : const Text('Преподаватель'),
+            items: teachers
+                .where((t) => t.id.isNotEmpty && t.fullName.isNotEmpty)
+                .map(
+                  (t) => DropdownMenuItem<String>(
+                    value: t.id,               // ✅ UUID String
+                    child: Text(t.fullName),
+                  ),
+                )
+                .toList(),
+            onChanged: (id) {
+              if (id == null) return;
+              final teacher = teachers.firstWhere((t) => t.id == id);
+              setState(() {
+                selectedTeacherId = id;
+                selectedTeacherName = teacher.fullName;
+              });
+            },
+            decoration: InputDecoration(
+              labelText: 'Преподаватель',
+              filled: true,
+              fillColor: const Color(0xFFF6F6F6),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide.none,
+              ),
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
+
+  // ─── Date picker ───────────────────────────────────────────────────────────
 
   Widget _buildDatePicker() {
     return Padding(
@@ -202,7 +273,8 @@ class _AddExamDialogState extends State<AddExamDialog> {
                       : '${examDate!.year}-${examDate!.month.toString().padLeft(2, '0')}-${examDate!.day.toString().padLeft(2, '0')}',
                   style: TextStyle(
                     fontSize: 14,
-                    color: examDate == null ? Colors.grey[500] : Colors.black87,
+                    color:
+                        examDate == null ? Colors.grey[500] : Colors.black87,
                   ),
                 ),
               ),
@@ -214,7 +286,13 @@ class _AddExamDialogState extends State<AddExamDialog> {
     );
   }
 
-  Widget _buildTimePicker(String label, TimeOfDay? time, ValueChanged<TimeOfDay> onPicked) {
+  // ─── Time picker ───────────────────────────────────────────────────────────
+
+  Widget _buildTimePicker(
+    String label,
+    TimeOfDay? time,
+    ValueChanged<TimeOfDay> onPicked,
+  ) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: InkWell(
@@ -253,6 +331,8 @@ class _AddExamDialogState extends State<AddExamDialog> {
     );
   }
 
+  // ─── Кнопки ────────────────────────────────────────────────────────────────
+
   Widget _buildActions(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.end,
@@ -268,13 +348,17 @@ class _AddExamDialogState extends State<AddExamDialog> {
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
             backgroundColor: const Color(0xFFED6A2E),
             foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
           child: const Text('Сохранить'),
         ),
       ],
     );
   }
+
+  // ─── Вспомогательные ───────────────────────────────────────────────────────
 
   void _pickDate() async {
     final now = DateTime.now();
@@ -290,10 +374,12 @@ class _AddExamDialogState extends State<AddExamDialog> {
   String _formatTime(TimeOfDay t) =>
       '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}:00';
 
+  // ─── Сохранение ────────────────────────────────────────────────────────────
+
   void _save() async {
     if (titleController.text.isEmpty ||
-        selectedGroup == null ||
-        selectedTeacher == null ||
+        selectedGroupId == null ||
+        selectedTeacherId == null ||
         examDate == null ||
         startTime == null ||
         endTime == null) {
@@ -303,23 +389,22 @@ class _AddExamDialogState extends State<AddExamDialog> {
       return;
     }
 
-    final groupIndex = widget.groups.indexOf(selectedGroup!) + 1;
     final dateStr =
         '${examDate!.year}-${examDate!.month.toString().padLeft(2, '0')}-${examDate!.day.toString().padLeft(2, '0')}';
 
     try {
       await context.read<ExamCubit>().addExam(
-        title: titleController.text,
-        teacher: selectedTeacher!,
-        group: groupIndex,
-        examDate: dateStr,
-        startTime: _formatTime(startTime!),
-        endTime: _formatTime(endTime!),
-        passScore: int.tryParse(passScoreController.text) ?? 0,
-        isPercentage: isPercentage,
-        isActive: isActive,
-        createdBy: '',
-      );
+            title: titleController.text,
+            teacher: selectedTeacherId!,   // ✅ UUID String
+            group: selectedGroupId!,       // ✅ int
+            examDate: dateStr,
+            startTime: _formatTime(startTime!),
+            endTime: _formatTime(endTime!),
+            passScore: int.tryParse(passScoreController.text) ?? 0,
+            isPercentage: isPercentage,
+            isActive: isActive,
+            createdBy: '',
+          );
 
       if (context.mounted) Navigator.pop(context);
     } catch (e) {

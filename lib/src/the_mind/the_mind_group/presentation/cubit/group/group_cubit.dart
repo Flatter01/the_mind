@@ -27,8 +27,13 @@ class GroupCubit extends Cubit<GroupState> {
     try {
       final groupData = await repository.getGroupById(groupId);
       final group = GroupModel.fromJson(groupData);
-      final students = await repository.getGroupStudents(groupId);
-      final attendance = await repository.getGroupAttendance(groupId);
+
+      // ✅ cast<Map<String, dynamic>>() — исправляет ошибку типа
+      final students = (await repository.getGroupStudents(groupId))
+          .cast<Map<String, dynamic>>();
+      final attendance = (await repository.getGroupAttendance(groupId))
+          .cast<Map<String, dynamic>>();
+
       if (isClosed) return;
       emit(GroupDetailsLoaded(
         group: group,
@@ -49,7 +54,7 @@ class GroupCubit extends Cubit<GroupState> {
     required String price,
     required String startDate,
     required String endDate,
-    required String weekDays,
+    required List<int> weekDays,
     required String startTime,
     required String endTime,
     required bool isActive,
@@ -62,7 +67,7 @@ class GroupCubit extends Cubit<GroupState> {
         level: level,
         teacher: teacher,
         room: room,
-        weekDays: "",
+        weekDays: weekDays,
         price: price,
         startDate: startDate,
         endDate: endDate,

@@ -26,27 +26,41 @@ class GroupRow extends StatelessWidget {
     return colors[(group.teacherName ?? '').length % colors.length];
   }
 
-  // ЯНГИси — ТЎҒРИ (String parse қиламиз)
+  // ✅ Маппинг английских названий и чисел → русские сокращения
+  static const _dayMap = {
+    // Английские названия (из API объектов)
+    'Monday': 'Пн',
+    'Tuesday': 'Вт',
+    'Wednesday': 'Ср',
+    'Thursday': 'Чт',
+    'Friday': 'Пт',
+    'Saturday': 'Сб',
+    'Sunday': 'Вс',
+    // Числа (из API строки "1,3,5")
+    '1': 'Пн',
+    '2': 'Вт',
+    '3': 'Ср',
+    '4': 'Чт',
+    '5': 'Пт',
+    '6': 'Сб',
+    '7': 'Вс',
+  };
+
   String get _daysDisplay {
     final days = group.weekDays;
     if (days == null || days.trim().isEmpty) return '—';
 
-    const map = {
-      '1': 'Пн',
-      '2': 'Вт',
-      '3': 'Ср',
-      '4': 'Чт',
-      '5': 'Пт',
-      '6': 'Сб',
-      '7': 'Вс',
-    };
+    // weekDays после _parseWeekDays в GroupModel уже строка вида:
+    // "Wednesday,Thursday,Saturday" или "2,4,6"
+    final parts = days.split(',');
 
-    // "1,2,3" ёки "1-2-3" форматини parse қиламиз
-    final parts = days.split(RegExp(r'[,\-\s]+'));
-    return parts
-        .map((d) => map[d.trim()] ?? d.trim())
-        .where((d) => d.isNotEmpty)
+    final result = parts
+        .map((p) => p.trim())
+        .where((p) => p.isNotEmpty)
+        .map((p) => _dayMap[p] ?? p)
         .join('-');
+
+    return result.isEmpty ? '—' : result;
   }
 
   // "10:00:00" → "10:00"
@@ -63,7 +77,7 @@ class GroupRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final students = group.studentCount ?? 0;
-    const capacity = 12; // нет в модели — дефолт
+    const capacity = 12;
     final fillPercent = (students / capacity).clamp(0.0, 1.0);
     final isFull = students >= capacity;
 
@@ -88,7 +102,7 @@ class GroupRow extends StatelessWidget {
         ),
         child: Row(
           children: [
-            // Название + ID
+            // Название
             Expanded(
               flex: 3,
               child: Column(
@@ -182,12 +196,15 @@ class GroupRow extends StatelessWidget {
               ),
             ),
 
-            // Дни
+            // Дни — теперь показывает Пн-Ср-Пт
             Expanded(
               flex: 2,
               child: Text(
                 _daysDisplay,
-                style: const TextStyle(fontSize: 13, color: Color(0xFF1A2233)),
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: Color(0xFF1A2233),
+                ),
               ),
             ),
 
@@ -196,11 +213,14 @@ class GroupRow extends StatelessWidget {
               flex: 2,
               child: Text(
                 _timeDisplay,
-                style: const TextStyle(fontSize: 13, color: Color(0xFF1A2233)),
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: Color(0xFF1A2233),
+                ),
               ),
             ),
 
-            // Уровень — берём из модели напрямую
+            // Уровень
             Expanded(
               flex: 1,
               child: Container(

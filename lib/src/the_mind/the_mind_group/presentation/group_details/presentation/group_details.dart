@@ -66,13 +66,15 @@ class _GroupDetailsState extends State<GroupDetails> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(state.message,
-                      style: const TextStyle(color: Colors.red)),
+                  Text(
+                    state.message,
+                    style: const TextStyle(color: Colors.red),
+                  ),
                   const SizedBox(height: 12),
                   ElevatedButton(
-                    onPressed: () => context
-                        .read<GroupCubit>()
-                        .getGroupDetails(widget.groupId),
+                    onPressed: () => context.read<GroupCubit>().getGroupDetails(
+                      widget.groupId,
+                    ),
                     child: const Text('Повторить'),
                   ),
                 ],
@@ -131,15 +133,18 @@ class _GroupDetailsState extends State<GroupDetails> {
               RichText(
                 text: TextSpan(
                   style: const TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF1A2233)),
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF1A2233),
+                  ),
                   children: [
                     const TextSpan(text: 'Группа: '),
                     TextSpan(
                       text: group.name ?? '',
                       style: const TextStyle(
-                          fontSize: 26, fontWeight: FontWeight.w900),
+                        fontSize: 26,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                   ],
                 ),
@@ -156,32 +161,37 @@ class _GroupDetailsState extends State<GroupDetails> {
         OutlinedButton.icon(
           onPressed: () {},
           icon: Icon(Icons.edit_outlined, size: 15, color: Colors.grey[700]),
-          label: Text('Редактировать',
-              style: TextStyle(fontSize: 13, color: Colors.grey[700])),
+          label: Text(
+            'Редактировать',
+            style: TextStyle(fontSize: 13, color: Colors.grey[700]),
+          ),
           style: OutlinedButton.styleFrom(
             side: BorderSide(color: Colors.grey.withOpacity(0.3)),
-            padding:
-                const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
             shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10)),
+              borderRadius: BorderRadius.circular(10),
+            ),
           ),
         ),
         const SizedBox(width: 10),
         ElevatedButton.icon(
           onPressed: () {},
           icon: const Icon(Icons.add, size: 15, color: Colors.white),
-          label: const Text('Добавить студента',
-              style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600)),
+          label: const Text(
+            'Добавить студента',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFFED6A2E),
             elevation: 0,
-            padding:
-                const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
             shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10)),
+              borderRadius: BorderRadius.circular(10),
+            ),
           ),
         ),
       ],
@@ -189,92 +199,148 @@ class _GroupDetailsState extends State<GroupDetails> {
   }
 
   // ── Информация + Финансы — оригинальный UI, данные из API ───────
-// ── Информация — точно как на скриншоте ─────────────────────────
-Widget _buildInfoAndFinance(GroupModel group, double dailyIncome) {
-  return IntrinsicHeight(
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Container(
-          width: 310,
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10)],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: const [
-                  Icon(Icons.info_outline, size: 15, color: Color(0xFFED6A2E)),
-                  SizedBox(width: 8),
-                  Text('Информация', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF1A2233))),
-                ],
-              ),
-              const SizedBox(height: 18),
-              _infoRow('Основной учитель', group.teacherName ?? '—', const Color(0xFF1A2233)),
-              const SizedBox(height: 14),
-              // Замена — нет в API, оставляем прочерк
-              _infoRow('Замена', '—', const Color(0xFFED6A2E)),
-              const SizedBox(height: 14),
-              _infoRow('Учебная комната', group.roomName ?? '—', const Color(0xFF1A2233)),
-            ],
-          ),
-        ),
-
-        const SizedBox(width: 16),
-
-        Expanded(
-          child: Container(
+  // ── Информация — точно как на скриншоте ─────────────────────────
+  Widget _buildInfoAndFinance(GroupModel group, double dailyIncome) {
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            width: 310,
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(16),
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10)],
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.04),
+                  blurRadius: 10,
+                ),
+              ],
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: const [
-                    Icon(Icons.account_balance_wallet_outlined, size: 15, color: Color(0xFFED6A2E)),
+                    Icon(
+                      Icons.info_outline,
+                      size: 15,
+                      color: Color(0xFFED6A2E),
+                    ),
                     SizedBox(width: 8),
-                    Text('Финансы преподавателя', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF1A2233))),
+                    Text(
+                      'Информация',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF1A2233),
+                      ),
+                    ),
                   ],
                 ),
-                const SizedBox(height: 20),
-                Row(
-                  children: [
-                    // СТАВКА ЗА УЧЕНИКА — нет в API, показываем из group.price
-                    _financeStat('СТАВКА ЗА УЧЕНИКА', '${group.price ?? "0"} Сум', Colors.black87),
-                    const SizedBox(width: 40),
-                    // ДОХОД ЗА ДЕНЬ — считаем сами
-                    _financeStat('ДОХОД ЗА ДЕНЬ', '${dailyIncome.toStringAsFixed(0)} Сум', const Color(0xFFED6A2E)),
-                    const SizedBox(width: 40),
-                    // ТЕКУЩИЙ БАЛАНС — нет в API, прочерк
-                    _financeStat('ТЕКУЩИЙ БАЛАНС', '—', const Color(0xFF2ECC8A)),
-                  ],
+                const SizedBox(height: 18),
+                _infoRow(
+                  'Основной учитель',
+                  group.teacherName ?? '—',
+                  const Color(0xFF1A2233),
+                ),
+                const SizedBox(height: 14),
+                // Замена — нет в API, оставляем прочерк
+                _infoRow('Замена', '—', const Color(0xFFED6A2E)),
+                const SizedBox(height: 14),
+                _infoRow(
+                  'Учебная комната',
+                  group.roomName ?? '—',
+                  const Color(0xFF1A2233),
                 ),
               ],
             ),
           ),
-        ),
-      ],
-    ),
-  );
-}
+
+          const SizedBox(width: 16),
+
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.04),
+                    blurRadius: 10,
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: const [
+                      Icon(
+                        Icons.account_balance_wallet_outlined,
+                        size: 15,
+                        color: Color(0xFFED6A2E),
+                      ),
+                      SizedBox(width: 8),
+                      Text(
+                        'Финансы преподавателя',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF1A2233),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      // СТАВКА ЗА УЧЕНИКА — нет в API, показываем из group.price
+                      _financeStat(
+                        'СТАВКА ЗА УЧЕНИКА',
+                        '${group.price ?? "0"} Сум',
+                        Colors.black87,
+                      ),
+                      const SizedBox(width: 40),
+                      // ДОХОД ЗА ДЕНЬ — считаем сами
+                      _financeStat(
+                        'ДОХОД ЗА ДЕНЬ',
+                        '${dailyIncome.toStringAsFixed(0)} Сум',
+                        const Color(0xFFED6A2E),
+                      ),
+                      const SizedBox(width: 40),
+                      // ТЕКУЩИЙ БАЛАНС — нет в API, прочерк
+                      _financeStat(
+                        'ТЕКУЩИЙ БАЛАНС',
+                        '—',
+                        const Color(0xFF2ECC8A),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _infoRow(String label, String value, Color valueColor) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(label, style: TextStyle(fontSize: 13, color: Colors.grey[500])),
-        Text(value,
-            style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: valueColor)),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: valueColor,
+          ),
+        ),
       ],
     );
   }
@@ -283,18 +349,24 @@ Widget _buildInfoAndFinance(GroupModel group, double dailyIncome) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label,
-            style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w700,
-                color: Colors.grey[400],
-                letterSpacing: 0.5)),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w700,
+            color: Colors.grey[400],
+            letterSpacing: 0.5,
+          ),
+        ),
         const SizedBox(height: 8),
-        Text(value,
-            style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.w800,
-                color: valueColor)),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.w800,
+            color: valueColor,
+          ),
+        ),
       ],
     );
   }
@@ -306,8 +378,7 @@ Widget _buildInfoAndFinance(GroupModel group, double dailyIncome) {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
-          BoxShadow(
-              color: Colors.black.withOpacity(0.04), blurRadius: 10)
+          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10),
         ],
       ),
       child: Column(
@@ -320,36 +391,42 @@ Widget _buildInfoAndFinance(GroupModel group, double dailyIncome) {
                 RichText(
                   text: TextSpan(
                     style: const TextStyle(
-                        fontSize: 15, color: Color(0xFF1A2233)),
+                      fontSize: 15,
+                      color: Color(0xFF1A2233),
+                    ),
                     children: [
                       const TextSpan(
-                          text: 'Посещаемость и успеваемость: ',
-                          style: TextStyle(fontWeight: FontWeight.w700)),
+                        text: 'Посещаемость и успеваемость: ',
+                        style: TextStyle(fontWeight: FontWeight.w700),
+                      ),
                       TextSpan(
-                          text: _lessonDate,
-                          style: const TextStyle(
-                              fontWeight: FontWeight.w800)),
+                        text: _lessonDate,
+                        style: const TextStyle(fontWeight: FontWeight.w800),
+                      ),
                     ],
                   ),
                 ),
                 const Spacer(),
-                Icon(Icons.calendar_today_outlined,
-                    size: 14, color: Colors.grey[400]),
+                Icon(
+                  Icons.calendar_today_outlined,
+                  size: 14,
+                  color: Colors.grey[400],
+                ),
                 const SizedBox(width: 6),
-                Text('Урок №$_lessonNumber из $_totalLessons',
-                    style:
-                        TextStyle(fontSize: 13, color: Colors.grey[500])),
+                Text(
+                  'Урок №$_lessonNumber из $_totalLessons',
+                  style: TextStyle(fontSize: 13, color: Colors.grey[500]),
+                ),
               ],
             ),
           ),
 
           Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
             decoration: BoxDecoration(
               border: Border.symmetric(
-                  horizontal: BorderSide(
-                      color: Colors.grey.withOpacity(0.1))),
+                horizontal: BorderSide(color: Colors.grey.withOpacity(0.1)),
+              ),
             ),
             child: const Row(
               children: [
@@ -368,12 +445,14 @@ Widget _buildInfoAndFinance(GroupModel group, double dailyIncome) {
           Expanded(
             child: students.isEmpty
                 ? Center(
-                    child: Text('Студентов нет',
-                        style: TextStyle(color: Colors.grey[400])))
+                    child: Text(
+                      'Студентов нет',
+                      style: TextStyle(color: Colors.grey[400]),
+                    ),
+                  )
                 : ListView.builder(
                     itemCount: students.length,
-                    itemBuilder: (context, i) =>
-                        _buildStudentRow(students[i]),
+                    itemBuilder: (context, i) => _buildStudentRow(students[i]),
                   ),
           ),
         ],
@@ -382,8 +461,23 @@ Widget _buildInfoAndFinance(GroupModel group, double dailyIncome) {
   }
 
   Widget _buildStudentRow(Map<String, dynamic> s) {
-    final studentId = s['student'] as int;
-    final name = s['student_name'] as String? ?? '—';
+    print('=== ROW ===');
+    print(s.keys.toList()); // покажет все ключи
+    print(s);
+    print('===========');
+
+    final studentId =
+        (s['student'] as num?)?.toInt() ??
+        int.tryParse(s['student']?.toString() ?? '') ??
+        0;
+
+    // ✅ Пробуем все возможные поля для имени
+    final name =
+        s['student_name']?.toString() ??
+        s['name']?.toString() ??
+        s['full_name']?.toString() ??
+        s['student_full_name']?.toString() ??
+        '—';
     final isActive = s['is_active'] as bool? ?? true;
     final isStopped = s['is_stopped'] as bool? ?? false;
     final isPresent = _attendance[studentId] ?? false;
@@ -394,12 +488,11 @@ Widget _buildInfoAndFinance(GroupModel group, double dailyIncome) {
     return StatefulBuilder(
       builder: (context, setRowState) {
         return Container(
-          padding:
-              const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           decoration: BoxDecoration(
             border: Border(
-                bottom: BorderSide(
-                    color: Colors.grey.withOpacity(0.07))),
+              bottom: BorderSide(color: Colors.grey.withOpacity(0.07)),
+            ),
           ),
           child: Row(
             children: [
@@ -409,11 +502,14 @@ Widget _buildInfoAndFinance(GroupModel group, double dailyIncome) {
               // Имя
               Expanded(
                 flex: 4,
-                child: Text(name,
-                    style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF1A2233))),
+                child: Text(
+                  name,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF1A2233),
+                  ),
+                ),
               ),
 
               // Статус — из API
@@ -423,29 +519,31 @@ Widget _buildInfoAndFinance(GroupModel group, double dailyIncome) {
                   alignment: Alignment.centerLeft,
                   child: Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 5),
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
                     decoration: BoxDecoration(
                       color: isStopped
                           ? Colors.grey.withOpacity(0.1)
                           : isActive
-                              ? const Color(0xFF2ECC8A).withOpacity(0.1)
-                              : const Color(0xFFED6A2E).withOpacity(0.1),
+                          ? const Color(0xFF2ECC8A).withOpacity(0.1)
+                          : const Color(0xFFED6A2E).withOpacity(0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
                       isStopped
                           ? 'Остановлен'
                           : isActive
-                              ? 'Активен'
-                              : 'Неактивен',
+                          ? 'Активен'
+                          : 'Неактивен',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                         color: isStopped
                             ? Colors.grey
                             : isActive
-                                ? const Color(0xFF2ECC8A)
-                                : const Color(0xFFED6A2E),
+                            ? const Color(0xFF2ECC8A)
+                            : const Color(0xFFED6A2E),
                       ),
                     ),
                   ),
@@ -455,9 +553,10 @@ Widget _buildInfoAndFinance(GroupModel group, double dailyIncome) {
               // Баланс — пока нет в student-groups API, показываем прочерк
               Expanded(
                 flex: 3,
-                child: Text('—',
-                    style: TextStyle(
-                        fontSize: 13, color: Colors.grey[400])),
+                child: Text(
+                  '—',
+                  style: TextStyle(fontSize: 13, color: Colors.grey[400]),
+                ),
               ),
 
               // Чекбокс
@@ -470,9 +569,12 @@ Widget _buildInfoAndFinance(GroupModel group, double dailyIncome) {
                     activeColor: const Color(0xFFED6A2E),
                     checkColor: Colors.white,
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(4)),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
                     side: BorderSide(
-                        color: Colors.grey.withOpacity(0.4), width: 1.5),
+                      color: Colors.grey.withOpacity(0.4),
+                      width: 1.5,
+                    ),
                     onChanged: (v) {
                       setState(() => _attendance[studentId] = v ?? false);
                       setRowState(() {});
@@ -486,9 +588,10 @@ Widget _buildInfoAndFinance(GroupModel group, double dailyIncome) {
                 flex: 2,
                 child: isPresent
                     ? _gradeDropdown(studentId, grade, setRowState)
-                    : Text('—',
-                        style: TextStyle(
-                            color: Colors.grey[300], fontSize: 14)),
+                    : Text(
+                        '—',
+                        style: TextStyle(color: Colors.grey[300], fontSize: 14),
+                      ),
               ),
 
               // ДЗ
@@ -496,9 +599,10 @@ Widget _buildInfoAndFinance(GroupModel group, double dailyIncome) {
                 flex: 3,
                 child: isPresent
                     ? _hwField(studentId)
-                    : Text('—',
-                        style: TextStyle(
-                            color: Colors.grey[300], fontSize: 14)),
+                    : Text(
+                        '—',
+                        style: TextStyle(color: Colors.grey[300], fontSize: 14),
+                      ),
               ),
             ],
           ),
@@ -512,55 +616,74 @@ Widget _buildInfoAndFinance(GroupModel group, double dailyIncome) {
     final initials = parts.length >= 2
         ? '${parts[0][0]}${parts[1][0]}'.toUpperCase()
         : name.isNotEmpty
-            ? name[0].toUpperCase()
-            : '?';
+        ? name[0].toUpperCase()
+        : '?';
     const colors = [
       Color(0xFFED6A2E),
       Color(0xFF6B7FD4),
       Color(0xFF2ECC8A),
-      Color(0xFF8A9BB8)
+      Color(0xFF8A9BB8),
     ];
     final color = colors[name.length % colors.length];
     return CircleAvatar(
       radius: 18,
       backgroundColor: color.withOpacity(0.15),
-      child: Text(initials,
-          style: TextStyle(
-              fontSize: 11, fontWeight: FontWeight.w700, color: color)),
+      child: Text(
+        initials,
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          color: color,
+        ),
+      ),
     );
   }
 
-  Widget _gradeDropdown(
-      int studentId, int? grade, StateSetter setRowState) {
+  Widget _gradeDropdown(int studentId, int? grade, StateSetter setRowState) {
     return SizedBox(
       height: 34,
       child: DropdownButtonHideUnderline(
         child: DropdownButton<int>(
           value: grade,
           isDense: true,
-          hint: Icon(Icons.keyboard_arrow_down,
-              size: 18, color: Colors.grey[400]),
+          hint: Icon(
+            Icons.keyboard_arrow_down,
+            size: 18,
+            color: Colors.grey[400],
+          ),
           icon: grade != null
-              ? Icon(Icons.keyboard_arrow_down,
-                  size: 16, color: Colors.grey[400])
+              ? Icon(
+                  Icons.keyboard_arrow_down,
+                  size: 16,
+                  color: Colors.grey[400],
+                )
               : const SizedBox.shrink(),
           selectedItemBuilder: (_) => List.generate(
-              5,
-              (i) => Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text('${i + 1}',
-                        style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF1A2233))),
-                  )),
+            5,
+            (i) => Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                '${i + 1}',
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF1A2233),
+                ),
+              ),
+            ),
+          ),
           items: List.generate(5, (i) {
             final v = i + 1;
             return DropdownMenuItem(
-                value: v,
-                child: Text('$v',
-                    style: const TextStyle(
-                        fontSize: 14, fontWeight: FontWeight.w600)));
+              value: v,
+              child: Text(
+                '$v',
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            );
           }),
           onChanged: (v) {
             setState(() => _grades[studentId] = v);
@@ -580,20 +703,22 @@ Widget _buildInfoAndFinance(GroupModel group, double dailyIncome) {
         decoration: InputDecoration(
           hintText: 'Нет',
           hintStyle: TextStyle(fontSize: 13, color: Colors.grey[400]),
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 10,
+            vertical: 8,
+          ),
           border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide:
-                  BorderSide(color: Colors.grey.withOpacity(0.2))),
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide(color: Colors.grey.withOpacity(0.2)),
+          ),
           enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide:
-                  BorderSide(color: Colors.grey.withOpacity(0.2))),
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide(color: Colors.grey.withOpacity(0.2)),
+          ),
           focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide:
-                  const BorderSide(color: Color(0xFFED6A2E))),
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: Color(0xFFED6A2E)),
+          ),
         ),
       ),
     );
@@ -606,11 +731,14 @@ class _ColHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text(text,
-        style: const TextStyle(
-            fontSize: 10,
-            fontWeight: FontWeight.w700,
-            color: Color(0xFF8A9BB8),
-            letterSpacing: 0.4));
+    return Text(
+      text,
+      style: const TextStyle(
+        fontSize: 10,
+        fontWeight: FontWeight.w700,
+        color: Color(0xFF8A9BB8),
+        letterSpacing: 0.4,
+      ),
+    );
   }
 }

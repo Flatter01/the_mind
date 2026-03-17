@@ -28,7 +28,7 @@ class StudentCubit extends Cubit<StudentState> {
     required String status,
     required String birthDate,
     required String gender,
-    required int district,
+    // required int district,
     required String groupName,
     required String teacherName,
     required String source,
@@ -49,7 +49,7 @@ class StudentCubit extends Cubit<StudentState> {
         status: status,
         birthDate: birthDate,
         gender: gender,
-        district: district,
+        // district: district,
         source: source,
         notes: notes,
       );

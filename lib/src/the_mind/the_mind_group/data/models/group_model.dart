@@ -3,9 +3,9 @@ class GroupModel {
   final String? name;
   final String? level;
   final String? levelDisplay;
-  final String? teacher;      // UUID String
+  final String? teacher;
   final String? teacherName;
-  final String? weekDays;     // API "string" қайтаради
+  final String? weekDays;
   final int? studentCount;
   final int? room;
   final String? roomName;
@@ -16,7 +16,6 @@ class GroupModel {
   final String? endTime;
   final bool? isActive;
   final String? createdAt;
-
 
   const GroupModel({
     this.id,
@@ -38,15 +37,38 @@ class GroupModel {
     this.createdAt,
   });
 
+  // ✅ Парсим week_days из любого формата API
+  // API может вернуть:
+  //   - List объектов: [{id: 2, name: "Wednesday"}, ...]
+  //   - Строку: "1,3,5"
+  //   - null
+  static String? _parseWeekDays(dynamic raw) {
+    if (raw == null) return null;
+    if (raw is String) return raw;
+    if (raw is List) {
+      return raw
+          .map((e) {
+            if (e is Map) {
+              // берём name если есть, иначе id
+              return e['name']?.toString() ?? e['id']?.toString() ?? '';
+            }
+            return e.toString();
+          })
+          .where((s) => s.isNotEmpty)
+          .join(',');
+    }
+    return raw.toString();
+  }
+
   factory GroupModel.fromJson(Map<String, dynamic> json) {
     return GroupModel(
       id: json['id'] as int?,
       name: json['name'] as String?,
       level: json['level'] as String?,
       levelDisplay: json['level_display'] as String?,
-      teacher: json['teacher'] as String?,       // UUID
+      teacher: json['teacher'] as String?,
       teacherName: json['teacher_name'] as String?,
-      weekDays: json['week_days']?.toString(),   // String сақла
+      weekDays: _parseWeekDays(json['week_days']), // ✅ умный парсинг
       studentCount: json['student_count'] as int?,
       room: json['room'] as int?,
       roomName: json['room_name'] as String?,
@@ -61,15 +83,15 @@ class GroupModel {
   }
 
   Map<String, dynamic> toJson() => {
-        "name": name,
-        "level": level,
-        "teacher": teacher,
-        "room": room,
-        "price": price,
-        "start_date": startDate,
-        "end_date": endDate,
-        "start_time": startTime,
-        "end_time": endTime,
-        "is_active": isActive,
+        'name': name,
+        'level': level,
+        'teacher': teacher,
+        'room': room,
+        'price': price,
+        'start_date': startDate,
+        'end_date': endDate,
+        'start_time': startTime,
+        'end_time': endTime,
+        'is_active': isActive,
       };
 }
