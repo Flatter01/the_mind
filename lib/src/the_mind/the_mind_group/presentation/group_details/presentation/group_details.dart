@@ -461,11 +461,6 @@ class _GroupDetailsState extends State<GroupDetails> {
   }
 
   Widget _buildStudentRow(Map<String, dynamic> s) {
-    print('=== ROW ===');
-    print(s.keys.toList()); // покажет все ключи
-    print(s);
-    print('===========');
-
     final studentId =
         (s['student'] as num?)?.toInt() ??
         int.tryParse(s['student']?.toString() ?? '') ??

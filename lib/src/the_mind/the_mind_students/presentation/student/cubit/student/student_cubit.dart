@@ -70,6 +70,18 @@ class StudentCubit extends Cubit<StudentState> {
     }
   }
 
+  Future<void> freezeStudent(int studentId) async {
+    if (isClosed) return;
+    try {
+      await repository.updateStudent(studentId.toString(), {'status': 'inactive'});
+      if (isClosed) return;
+      await getStudents();
+    } catch (e) {
+      if (isClosed) return;
+      emit(StudentError(message: e.toString()));
+    }
+  }
+
   Future<void> deleteStudent(int studentId) async {
     if (isClosed) return;
 

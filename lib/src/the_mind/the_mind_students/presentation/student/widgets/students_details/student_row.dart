@@ -28,23 +28,16 @@ class StudentRow extends StatelessWidget {
     return colors[hash];
   }
 
-  // ✅ Долг = сколько ещё нужно заплатить
-  // finalPrice - paidAmount → положительное = ещё должен, 0 = оплачено, отрицательное = переплатил
-  double get _debtAmount {
-    final paid = double.tryParse(student.paidAmount ?? '0') ?? 0;
-    final total =
-        double.tryParse(student.finalPrice ?? student.groupPrice ?? '0') ?? 0;
-    return total - paid; // > 0 значит должен, < 0 значит переплатил
-  }
+  double get _balance => double.tryParse(student.balance) ?? 0;
 
   String get _balanceDisplay {
-    final debt = _debtAmount;
-    if (debt == 0) return '0 сум';
-    if (debt > 0) return '-${debt.toInt()} сум'; // должен — красный
-    return '+${debt.abs().toInt()} сум'; // переплатил — зелёный
+    final b = _balance;
+    if (b == 0) return '0 сум';
+    if (b < 0) return '${b.toInt()} сум'; // отрицательный = долг
+    return '+${b.toInt()} сум'; // положительный = переплатил
   }
 
-  bool get _isDebt => _debtAmount > 0;
+  bool get _isDebt => _balance < 0;
 
   // ✅ Статус берём из поля status (active/inactive/trial)
   // НЕ из debt_status — он у всех 'debt' кто не заплатил
@@ -227,7 +220,7 @@ class StudentRow extends StatelessWidget {
                     context.read<StudentCubit>().deleteStudent(student.id!);
                   }
                   if (value == 'freeze') {
-                    debugPrint('Заморозить: ${student.firstName}');
+                    context.read<StudentCubit>().freezeStudent(student.id!);
                   }
                 },
                 itemBuilder: (context) => const [

@@ -38,25 +38,53 @@ class GroupRepository {
     }
   }
 
-  // ✅ Используем /group/student-groups/?group=ID
+  // Используем /group/student-groups/?group=ID + джойним имена из /student/students/
   Future<List<dynamic>> getGroupStudents(int groupId) async {
     try {
-      final response = await _dio.get(
+      final sgResponse = await _dio.get(
         '/group/student-groups/',
         queryParameters: {'group': groupId},
       );
-      final data = response.data;
+      final sgData = sgResponse.data;
 
-      // ✅ Принт реального ответа
-      print('=== STUDENT-GROUPS RAW ===');
-      print(data);
-      print('==========================');
-
-      if (data is List) return data;
-      if (data is Map && data['results'] is List) {
-        return data['results'] as List;
+      List<dynamic> studentGroups;
+      if (sgData is List) {
+        studentGroups = sgData;
+      } else if (sgData is Map && sgData['results'] is List) {
+        studentGroups = sgData['results'] as List;
+      } else {
+        return [];
       }
-      return [];
+
+      // Загружаем всех студентов чтобы получить имена
+      final studentsResponse = await _dio.get('/student/students/');
+      final studentsData = studentsResponse.data;
+      final List<dynamic> studentsList =
+          studentsData is List
+              ? studentsData
+              : (studentsData is Map && studentsData['results'] is List)
+              ? studentsData['results'] as List
+              : [];
+
+      final studentsMap = <int, Map<String, dynamic>>{};
+      for (final s in studentsList) {
+        final sm = s as Map<String, dynamic>;
+        final id = sm['id'] as int?;
+        if (id != null) studentsMap[id] = sm;
+      }
+
+      // Мёрджим: добавляем student_name к каждой записи student-group
+      return studentGroups.map((sg) {
+        final map = Map<String, dynamic>.from(sg as Map);
+        final studentId = map['student'] as int?;
+        if (studentId != null && studentsMap.containsKey(studentId)) {
+          final student = studentsMap[studentId]!;
+          final firstName = student['first_name'] as String? ?? '';
+          final lastName = student['last_name'] as String? ?? '';
+          map['student_name'] = '$firstName $lastName'.trim();
+        }
+        return map;
+      }).toList();
     } on DioException catch (e) {
       throw Exception(
         'Ошибка загрузки студентов: ${e.response?.data ?? e.message}',

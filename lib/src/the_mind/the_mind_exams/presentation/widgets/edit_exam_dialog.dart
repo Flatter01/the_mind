@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:srm/src/the_mind/the_mind_exams/data/models/exam_model.dart';
+import 'package:srm/src/the_mind/the_mind_group/data/datasources/group_api_service.dart';
 
 // Статус студента
 enum StudentStatus { present, absent, waiting }
@@ -40,13 +41,35 @@ class _EditExamDialogState extends State<EditExamDialog> {
   final int _perPage = 5;
   String _examStatus = 'planned';
 
-  // Пока студенты хардкод — позже заменишь на API
   final List<ExamStudentRow> _students = [];
 
   @override
   void initState() {
     super.initState();
     _examStatus = widget.exam.status;
+    _loadStudents();
+  }
+
+  Future<void> _loadStudents() async {
+    try {
+      final data = await GroupRepository().getGroupStudents(widget.exam.group);
+      final rows = data.map((s) {
+        final map = s as Map<String, dynamic>;
+        final name = (map['student_name'] as String? ?? '').trim();
+        final parts = name.split(' ');
+        return ExamStudentRow(
+          firstName: parts.isNotEmpty ? parts[0] : '',
+          lastName: parts.length > 1 ? parts.sublist(1).join(' ') : '',
+        );
+      }).toList();
+      if (mounted) {
+        setState(() {
+          _students
+            ..clear()
+            ..addAll(rows);
+        });
+      }
+    } catch (_) {}
   }
 
   @override

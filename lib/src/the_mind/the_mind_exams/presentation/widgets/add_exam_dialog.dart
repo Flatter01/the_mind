@@ -32,6 +32,12 @@ class _AddExamDialogState extends State<AddExamDialog> {
   bool isActive = true;
 
   @override
+  void initState() {
+    super.initState();
+    context.read<GroupCubit>().getGroups();
+  }
+
+  @override
   void dispose() {
     titleController.dispose();
     passScoreController.dispose();

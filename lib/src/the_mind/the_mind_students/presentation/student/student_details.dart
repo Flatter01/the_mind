@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:srm/src/the_mind/the_mind_group/data/models/group_model.dart';
+import 'package:srm/src/the_mind/the_mind_group/presentation/cubit/group/group_cubit.dart';
+import 'package:srm/src/the_mind/the_mind_group/presentation/cubit/group/group_state.dart';
 import 'package:srm/src/the_mind/the_mind_students/data/datasources/student_api_service.dart';
 import 'package:srm/src/the_mind/the_mind_students/data/model/students/student_model.dart';
 import 'package:srm/src/the_mind/the_mind_students/presentation/student/cubit/history/history_cubit.dart';
 import 'package:srm/src/the_mind/the_mind_students/presentation/student/cubit/journal/journal_cubit.dart';
 import 'package:srm/src/the_mind/the_mind_students/presentation/student/cubit/journal/journal_state.dart';
+import 'package:srm/src/the_mind/the_mind_students/presentation/student/cubit/student/student_cubit.dart';
 import 'package:srm/src/the_mind/the_mind_students/presentation/student/widgets/students_details/history_item.dart';
 import 'package:srm/src/the_mind/the_mind_students/presentation/student/widgets/students_details/info_field.dart';
 import 'package:srm/src/the_mind/the_mind_students/presentation/student/widgets/students_details/profile_header.dart';
@@ -15,7 +19,6 @@ import 'package:srm/src/the_mind/the_mind_students/presentation/student/widgets/
 
 class StudentDetailsPage extends StatefulWidget {
   final StudentModel student;
-
   const StudentDetailsPage({super.key, required this.student});
 
   @override
@@ -23,23 +26,24 @@ class StudentDetailsPage extends StatefulWidget {
 }
 
 class _StudentDetailsPageState extends State<StudentDetailsPage> {
-  int _selectedTab = 0;
   int _discountAmount = 0;
   bool _editingDiscount = false;
   late TextEditingController _discountCtrl;
 
+  static const _orange = Color(0xFFED6A2E);
+
   final List<Map<String, dynamic>> payments = const [
     {
-      "date": "12.10.2023",
-      "purpose": "Оплата обучения (Октябрь)",
-      "amount": "8 500 Сум",
-      "status": "Успешно",
+      'date': '12.10.2023',
+      'purpose': 'Оплата обучения (Октябрь)',
+      'amount': '8 500 Сум',
+      'status': 'Успешно',
     },
     {
-      "date": "15.09.2023",
-      "purpose": "Учебные материалы",
-      "amount": "1 200 Сум",
-      "status": "Успешно",
+      'date': '15.09.2023',
+      'purpose': 'Учебные материалы',
+      'amount': '1 200 Сум',
+      'status': 'Успешно',
     },
   ];
 
@@ -47,8 +51,6 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
   void initState() {
     super.initState();
     _discountCtrl = TextEditingController(text: _discountAmount.toString());
-
-    // Загружаем журнал — JournalCubit уже в дереве через main.dart
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final s = widget.student;
       context.read<JournalCubit>().loadJournal(
@@ -66,15 +68,15 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
   }
 
   int get _rawBalance {
-    final raw = widget.student.balance.replaceAll(RegExp(r'[^0-9\-]'), '');
+    final raw =
+        widget.student.balance.replaceAll(RegExp(r'[^0-9\-]'), '');
     return int.tryParse(raw) ?? 0;
   }
 
   int get _debtAmount => _rawBalance < 0 ? _rawBalance.abs() : 0;
-
   int get _debtAfterDiscount {
-    final debt = _debtAmount - _discountAmount;
-    return debt < 0 ? 0 : debt;
+    final d = _debtAmount - _discountAmount;
+    return d < 0 ? 0 : d;
   }
 
   int get _balanceAfterDiscount {
@@ -101,14 +103,13 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
   Color _colorFromApi(String color) {
     switch (color.toLowerCase()) {
       case 'orange':
-        return const Color(0xFFED6A2E);
+        return _orange;
       case 'red':
         return Colors.redAccent;
       case 'blue':
         return const Color(0xFF6B7FD4);
       case 'green':
         return const Color(0xFF2ECC8A);
-      case 'gray':
       default:
         return const Color(0xFF8A9BB8);
     }
@@ -129,7 +130,6 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
     }
   }
 
-  // Цвет по оценке
   Color _scoreColor(int? score) {
     if (score == null) return const Color(0xFF8A9BB8);
     if (score >= 5) return const Color(0xFF2ECC8A);
@@ -138,117 +138,539 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
     return Colors.redAccent;
   }
 
-  void _openEditStudent(StudentModel student) {
-    final firstNameCtrl = TextEditingController(text: student.firstName);
-    final lastNameCtrl = TextEditingController(text: student.lastName);
-    final phoneCtrl = TextEditingController(text: student.phone);
+  // ── Современный диалог редактирования ────────────────────────────────────
 
-    String status = student.status ?? 'active';
-    String group = student.groupName ?? '';
+  void _openEditStudent(StudentModel student) {
+    final firstNameCtrl = TextEditingController(text: student.firstName ?? '');
+    final lastNameCtrl = TextEditingController(text: student.lastName ?? '');
+    final phoneCtrl = TextEditingController(text: student.phone ?? '');
+
+    String status = student.status;
+    String? selectedGroupId = student.groupId;
+    String? selectedGroupName = student.groupName;
+    bool isSaving = false;
 
     showDialog(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text("Редактировать студента"),
-          content: StatefulBuilder(
-            builder: (context, setState) {
-              return SizedBox(
-                width: 400,
-                child: Column(
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return Dialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 32,
+            vertical: 40,
+          ),
+          child: SizedBox(
+            width: 520,
+            child: StatefulBuilder(
+              builder: (context, setDialogState) {
+                return Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    TextField(
-                      controller: firstNameCtrl,
-                      decoration: const InputDecoration(labelText: "Имя"),
+                    // ── Header ──
+                    Container(
+                      padding: const EdgeInsets.fromLTRB(28, 24, 16, 20),
+                      decoration: BoxDecoration(
+                        border: Border(
+                          bottom: BorderSide(
+                            color: Colors.grey.withOpacity(0.12),
+                          ),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 42,
+                            height: 42,
+                            decoration: BoxDecoration(
+                              color: _orange.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(
+                              Icons.person_outline,
+                              color: _orange,
+                              size: 20,
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Редактировать студента',
+                                style: TextStyle(
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF1A1F36),
+                                ),
+                              ),
+                              Text(
+                                '${student.lastName ?? ''} ${student.firstName ?? ''}',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[500],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const Spacer(),
+                          IconButton(
+                            onPressed: () => Navigator.pop(dialogContext),
+                            icon: Icon(
+                              Icons.close,
+                              color: Colors.grey[400],
+                              size: 20,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                    const SizedBox(height: 10),
-                    TextField(
-                      controller: lastNameCtrl,
-                      decoration: const InputDecoration(labelText: "Фамилия"),
+
+                    // ── Body ──
+                    Flexible(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.all(28),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Имя + Фамилия
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _editField(
+                                    controller: lastNameCtrl,
+                                    label: 'Фамилия',
+                                    icon: Icons.person_outline,
+                                  ),
+                                ),
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  child: _editField(
+                                    controller: firstNameCtrl,
+                                    label: 'Имя',
+                                    icon: Icons.person,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 14),
+
+                            // Телефон
+                            _editField(
+                              controller: phoneCtrl,
+                              label: 'Телефон',
+                              icon: Icons.phone_outlined,
+                              keyboardType: TextInputType.phone,
+                            ),
+                            const SizedBox(height: 14),
+
+                            // Статус
+                            _editLabel('СТАТУС'),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                _statusToggle(
+                                  label: 'Активный',
+                                  value: 'active',
+                                  current: status,
+                                  color: const Color(0xFF2ECC8A),
+                                  onTap: () => setDialogState(
+                                    () => status = 'active',
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                _statusToggle(
+                                  label: 'Не активен',
+                                  value: 'inactive',
+                                  current: status,
+                                  color: Colors.grey,
+                                  onTap: () => setDialogState(
+                                    () => status = 'inactive',
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                _statusToggle(
+                                  label: 'Пробный',
+                                  value: 'trial',
+                                  current: status,
+                                  color: const Color(0xFF6B7FD4),
+                                  onTap: () => setDialogState(
+                                    () => status = 'trial',
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 14),
+
+                            // Группа из GroupCubit
+                            _editLabel('ГРУППА'),
+                            const SizedBox(height: 8),
+                            BlocBuilder<GroupCubit, GroupState>(
+                              builder: (context, groupState) {
+                                final groups = groupState is GroupLoaded
+                                    ? groupState.groups
+                                    : <GroupModel>[];
+
+                                return Container(
+                                  height: 48,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF7F8FA),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: Colors.grey.withOpacity(0.18),
+                                    ),
+                                  ),
+                                  child: DropdownButtonHideUnderline(
+                                    child: DropdownButton<String>(
+                                      value: groups.any(
+                                        (g) =>
+                                            g.id?.toString() == selectedGroupId,
+                                      )
+                                          ? selectedGroupId
+                                          : null,
+                                      hint: Text(
+                                        selectedGroupName ?? 'Выберите группу',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: selectedGroupName != null
+                                              ? const Color(0xFF1A1F36)
+                                              : Colors.grey[400],
+                                        ),
+                                      ),
+                                      icon: Icon(
+                                        Icons.keyboard_arrow_down,
+                                        color: Colors.grey[500],
+                                      ),
+                                      isExpanded: true,
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        color: Color(0xFF1A1F36),
+                                      ),
+                                      items: groups
+                                          .map(
+                                            (g) => DropdownMenuItem<String>(
+                                              value: g.id?.toString(),
+                                              child: Row(
+                                                children: [
+                                                  Container(
+                                                    width: 8,
+                                                    height: 8,
+                                                    decoration: BoxDecoration(
+                                                      color: g.isActive == true
+                                                          ? const Color(
+                                                              0xFF2ECC8A,
+                                                            )
+                                                          : Colors.grey,
+                                                      shape: BoxShape.circle,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(width: 10),
+                                                  Expanded(
+                                                    child: Column(
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .start,
+                                                      mainAxisAlignment:
+                                                          MainAxisAlignment
+                                                              .center,
+                                                      children: [
+                                                        Text(
+                                                          g.name ?? '—',
+                                                          style:
+                                                              const TextStyle(
+                                                            fontSize: 13,
+                                                            fontWeight:
+                                                                FontWeight.w600,
+                                                          ),
+                                                        ),
+                                                        if (g.teacherName !=
+                                                            null)
+                                                          Text(
+                                                            g.teacherName!,
+                                                            style: TextStyle(
+                                                              fontSize: 11,
+                                                              color: Colors
+                                                                  .grey[500],
+                                                            ),
+                                                          ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          )
+                                          .toList(),
+                                      onChanged: (v) {
+                                        final match = groups.firstWhere(
+                                          (g) => g.id?.toString() == v,
+                                          orElse: () => const GroupModel(),
+                                        );
+                                        setDialogState(() {
+                                          selectedGroupId = v;
+                                          selectedGroupName = match.name;
+                                        });
+                                      },
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
-                    const SizedBox(height: 10),
-                    TextField(
-                      controller: phoneCtrl,
-                      decoration: const InputDecoration(labelText: "Телефон"),
-                    ),
-                    const SizedBox(height: 10),
-                    DropdownButtonFormField<String>(
-                      value: ["active", "inactive"].contains(status)
-                          ? status
-                          : null,
-                      decoration: const InputDecoration(labelText: "Статус"),
-                      items: const [
-                        DropdownMenuItem(
-                          value: "active",
-                          child: Text("Активный"),
+
+                    // ── Footer ──
+                    Container(
+                      padding: const EdgeInsets.fromLTRB(28, 16, 28, 24),
+                      decoration: BoxDecoration(
+                        border: Border(
+                          top: BorderSide(
+                            color: Colors.grey.withOpacity(0.12),
+                          ),
                         ),
-                        DropdownMenuItem(
-                          value: "inactive",
-                          child: Text("Не активный"),
-                        ),
-                      ],
-                      onChanged: (v) {
-                        setState(() {
-                          status = v!;
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 10),
-                    DropdownButtonFormField<String>(
-                      value: ["Flutter", "Frontend", "Backend"].contains(group)
-                          ? group
-                          : null,
-                      decoration: const InputDecoration(labelText: "Группа"),
-                      items: const [
-                        DropdownMenuItem(
-                          value: "Flutter",
-                          child: Text("Flutter"),
-                        ),
-                        DropdownMenuItem(
-                          value: "Frontend",
-                          child: Text("Frontend"),
-                        ),
-                        DropdownMenuItem(
-                          value: "Backend",
-                          child: Text("Backend"),
-                        ),
-                      ],
-                      onChanged: (v) {
-                        setState(() {
-                          group = v!;
-                        });
-                      },
+                      ),
+                      child: Row(
+                        children: [
+                          const Spacer(),
+                          TextButton(
+                            onPressed: isSaving
+                                ? null
+                                : () => Navigator.pop(dialogContext),
+                            child: Text(
+                              'Отмена',
+                              style: TextStyle(
+                                color: Colors.grey[500],
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          GestureDetector(
+                            onTap: isSaving
+                                ? null
+                                : () async {
+                                    setDialogState(() => isSaving = true);
+                                    try {
+                                      await context
+                                          .read<StudentCubit>()
+                                          .repository
+                                          .updateStudent(
+                                            student.id.toString(),
+                                            {
+                                              'first_name':
+                                                  firstNameCtrl.text.trim(),
+                                              'last_name':
+                                                  lastNameCtrl.text.trim(),
+                                              'phone': phoneCtrl.text.trim(),
+                                              'status': status,
+                                            },
+                                          );
+
+                                      if (!dialogContext.mounted) return;
+                                      Navigator.pop(dialogContext);
+
+                                      // Обновляем список
+                                      if (context.mounted) {
+                                        context
+                                            .read<StudentCubit>()
+                                            .getStudents();
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          const SnackBar(
+                                            content:
+                                                Text('✅ Данные обновлены'),
+                                            backgroundColor:
+                                                Color(0xFF2ECC8A),
+                                            behavior:
+                                                SnackBarBehavior.floating,
+                                          ),
+                                        );
+                                      }
+                                    } catch (e) {
+                                      setDialogState(() => isSaving = false);
+                                      if (dialogContext.mounted) {
+                                        ScaffoldMessenger.of(dialogContext)
+                                            .showSnackBar(
+                                          SnackBar(
+                                            content: Text(e.toString()),
+                                            backgroundColor: Colors.redAccent,
+                                            behavior:
+                                                SnackBarBehavior.floating,
+                                          ),
+                                        );
+                                      }
+                                    }
+                                  },
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 150),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 28,
+                                vertical: 13,
+                              ),
+                              decoration: BoxDecoration(
+                                color: isSaving
+                                    ? _orange.withOpacity(0.6)
+                                    : _orange,
+                                borderRadius: BorderRadius.circular(12),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: _orange.withOpacity(0.3),
+                                    blurRadius: 12,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: isSaving
+                                  ? const SizedBox(
+                                      width: 18,
+                                      height: 18,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.white,
+                                      ),
+                                    )
+                                  : const Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          Icons.check,
+                                          size: 16,
+                                          color: Colors.white,
+                                        ),
+                                        SizedBox(width: 6),
+                                        Text(
+                                          'Сохранить',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
-                ),
-              );
-            },
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("Отмена"),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                final updatedStudent = student.copyWith(
-                  firstName: firstNameCtrl.text,
-                  lastName: lastNameCtrl.text,
-                  phone: phoneCtrl.text,
-                  status: status,
-                  groupName: group,
                 );
-                // context.read<StudentCubit>().updateStudent(updatedStudent);
-                Navigator.pop(context);
               },
-              child: const Text("Сохранить"),
             ),
-          ],
+          ),
         );
       },
     );
   }
+
+  // ── Helpers для диалога ───────────────────────────────────────────────────
+
+  Widget _editField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    TextInputType? keyboardType,
+  }) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: keyboardType,
+      style: const TextStyle(fontSize: 14, color: Color(0xFF1A1F36)),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: TextStyle(fontSize: 13, color: Colors.grey[500]),
+        prefixIcon: Icon(icon, size: 18, color: Colors.grey[400]),
+        filled: true,
+        fillColor: const Color(0xFFF7F8FA),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey.withOpacity(0.18)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey.withOpacity(0.18)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: _orange, width: 1.5),
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
+      ),
+    );
+  }
+
+  Widget _editLabel(String text) {
+    return Text(
+      text,
+      style: TextStyle(
+        fontSize: 10,
+        fontWeight: FontWeight.w700,
+        color: Colors.grey[500],
+        letterSpacing: 0.8,
+      ),
+    );
+  }
+
+  Widget _statusToggle({
+    required String label,
+    required String value,
+    required String current,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    final isActive = current == value;
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: isActive ? color.withOpacity(0.1) : const Color(0xFFF7F8FA),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: isActive ? color : Colors.grey.withOpacity(0.18),
+              width: isActive ? 1.5 : 1,
+            ),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: isActive ? color : Colors.grey[300],
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: isActive ? color : Colors.grey[500],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── Build ─────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -336,7 +758,7 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
                                         child: InfoField(
                                           label: 'ОСНОВНАЯ ГРУППА',
                                           value: s.groupName ?? '—',
-                                          valueColor: const Color(0xFFED6A2E),
+                                          valueColor: _orange,
                                         ),
                                       ),
                                       Expanded(
@@ -363,7 +785,7 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
                                         const Icon(
                                           Icons.warning_amber_rounded,
                                           size: 14,
-                                          color: Color(0xFFED6A2E),
+                                          color: _orange,
                                         ),
                                         const SizedBox(width: 4),
                                         Text(
@@ -371,7 +793,7 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
                                           style: const TextStyle(
                                             fontSize: 13,
                                             fontWeight: FontWeight.w600,
-                                            color: Color(0xFFED6A2E),
+                                            color: _orange,
                                           ),
                                         ),
                                       ],
@@ -389,7 +811,7 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
                                           label: 'ОБЩИЙ БАЛАНС',
                                           value: _balanceDisplay,
                                           valueColor: _rawBalance < 0
-                                              ? const Color(0xFFED6A2E)
+                                              ? _orange
                                               : const Color(0xFF2ECC8A),
                                           valueBold: true,
                                           valueFontSize: 22,
@@ -418,9 +840,7 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
                                                       height: 38,
                                                       decoration: BoxDecoration(
                                                         border: Border.all(
-                                                          color: const Color(
-                                                            0xFFED6A2E,
-                                                          ),
+                                                          color: _orange,
                                                         ),
                                                         borderRadius:
                                                             BorderRadius
@@ -453,12 +873,6 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
                                                             vertical: 8,
                                                           ),
                                                           suffixText: 'Сум',
-                                                          suffixStyle:
-                                                              TextStyle(
-                                                            fontWeight:
-                                                                FontWeight.w600,
-                                                            color: Colors.grey,
-                                                          ),
                                                         ),
                                                         onSubmitted: (_) =>
                                                             _saveDiscount(),
@@ -490,9 +904,8 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
                                                   const SizedBox(width: 4),
                                                   GestureDetector(
                                                     onTap: () => setState(
-                                                      () =>
-                                                          _editingDiscount =
-                                                              false,
+                                                      () => _editingDiscount =
+                                                          false,
                                                     ),
                                                     child: Container(
                                                       width: 32,
@@ -552,16 +965,14 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
                                                         vertical: 3,
                                                       ),
                                                       decoration: BoxDecoration(
-                                                        color: const Color(
-                                                          0xFFED6A2E,
-                                                        ).withOpacity(0.08),
+                                                        color: _orange
+                                                            .withOpacity(0.08),
                                                         borderRadius:
                                                             BorderRadius
                                                                 .circular(6),
                                                         border: Border.all(
-                                                          color: const Color(
-                                                            0xFFED6A2E,
-                                                          ).withOpacity(0.3),
+                                                          color: _orange
+                                                              .withOpacity(0.3),
                                                         ),
                                                       ),
                                                       child: const Row(
@@ -571,18 +982,14 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
                                                           Icon(
                                                             Icons.edit_outlined,
                                                             size: 11,
-                                                            color: Color(
-                                                              0xFFED6A2E,
-                                                            ),
+                                                            color: _orange,
                                                           ),
                                                           SizedBox(width: 3),
                                                           Text(
                                                             'изменить',
                                                             style: TextStyle(
                                                               fontSize: 10,
-                                                              color: Color(
-                                                                0xFFED6A2E,
-                                                              ),
+                                                              color: _orange,
                                                               fontWeight:
                                                                   FontWeight
                                                                       .w600,
@@ -604,7 +1011,7 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
                                               ? '$_debtAfterDiscount Сум'
                                               : '0 Сум',
                                           valueColor: _debtAfterDiscount > 0
-                                              ? const Color(0xFFED6A2E)
+                                              ? _orange
                                               : const Color(0xFF2ECC8A),
                                           valueBold: true,
                                           valueFontSize: 22,
@@ -612,77 +1019,6 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
                                       ),
                                     ],
                                   ),
-
-                                  if (_discountAmount > 0 &&
-                                      _debtAmount > 0) ...[
-                                    const SizedBox(height: 10),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 12,
-                                        vertical: 8,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: const Color(
-                                          0xFF2ECC8A,
-                                        ).withOpacity(0.08),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          const Icon(
-                                            Icons.discount_outlined,
-                                            size: 14,
-                                            color: Color(0xFF2ECC8A),
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Expanded(
-                                            child: Text(
-                                              'Скидка $_discountAmount Сум применена. Долг был: $_debtAmount Сум → к оплате: $_debtAfterDiscount Сум',
-                                              style: const TextStyle(
-                                                fontSize: 12,
-                                                color: Color(0xFF2ECC8A),
-                                                fontWeight: FontWeight.w500,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-
-                                  if (_discountAmount > 0 &&
-                                      _debtAmount == 0) ...[
-                                    const SizedBox(height: 10),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 12,
-                                        vertical: 8,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color:
-                                            Colors.orange.withOpacity(0.08),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: const Row(
-                                        children: [
-                                          Icon(
-                                            Icons.info_outline,
-                                            size: 14,
-                                            color: Colors.orange,
-                                          ),
-                                          SizedBox(width: 8),
-                                          Text(
-                                            'Скидка задана, но у студента нет долга.',
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              color: Colors.orange,
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
 
                                   const SizedBox(height: 16),
                                   const Divider(),
@@ -771,21 +1107,17 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
 
                             const SizedBox(height: 16),
 
-                            // ── Академические успехи — данные из JournalCubit ──
+                            // ── Академические успехи ──
                             BlocBuilder<JournalCubit, JournalState>(
                               builder: (context, journalState) {
-                                // Запись текущего студента
                                 final record = journalState is JournalLoaded
                                     ? journalState.records
                                         .where((r) => r.studentId == s.id)
                                         .firstOrNull
                                     : null;
 
-                                // Средние по группе для ScoreMetric
-                                double avgHw = 0;
-                                double avgClass = 0;
-                                int countHw = 0;
-                                int countClass = 0;
+                                double avgHw = 0, avgClass = 0;
+                                int countHw = 0, countClass = 0;
                                 if (journalState is JournalLoaded) {
                                   for (final r in journalState.records) {
                                     if (r.homeworkScore != null) {
@@ -801,52 +1133,51 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
                                   if (countClass > 0) avgClass /= countClass;
                                 }
 
-                                // grades — строим из API или показываем заглушки
                                 final grades = record != null
                                     ? <Map<String, dynamic>>[
                                         {
-                                          "label":
+                                          'label':
                                               record.classScore?.toString() ??
                                                   '—',
-                                          "subject": "Оценка за урок",
-                                          "color":
+                                          'subject': 'Оценка за урок',
+                                          'color':
                                               _scoreColor(record.classScore),
                                         },
                                         {
-                                          "label":
+                                          'label':
                                               record.homeworkScore?.toString() ??
                                                   '—',
-                                          "subject": "Домашнее задание",
-                                          "color": _scoreColor(
+                                          'subject': 'Домашнее задание',
+                                          'color': _scoreColor(
                                               record.homeworkScore),
                                         },
                                         {
-                                          "label":
+                                          'label':
                                               record.attendance == 'present'
                                                   ? '✓'
                                                   : '✗',
-                                          "subject": "Посещаемость",
-                                          "color":
-                                              record.attendance == 'present'
-                                                  ? const Color(0xFF2ECC8A)
-                                                  : Colors.redAccent,
+                                          'subject': 'Посещаемость',
+                                          'color': record.attendance ==
+                                                  'present'
+                                              ? const Color(0xFF2ECC8A)
+                                              : Colors.redAccent,
                                         },
                                       ]
                                     : <Map<String, dynamic>>[
                                         {
-                                          "label": "—",
-                                          "subject": "Оценка за урок",
-                                          "color": const Color(0xFF8A9BB8),
+                                          'label': '—',
+                                          'subject': 'Оценка за урок',
+                                          'color': const Color(0xFF8A9BB8),
                                         },
                                         {
-                                          "label": "—",
-                                          "subject": "Домашнее задание",
-                                          "color": const Color(0xFF8A9BB8),
+                                          'label': '—',
+                                          'subject': 'Домашнее задание',
+                                          'color': const Color(0xFF8A9BB8),
                                         },
                                         {
-                                          "label": "—",
-                                          "subject": "Посещаемость",
-                                          "color": const Color(0xFF8A9BB8),
+                                          'label': '—',
+                                          'subject': 'Посещаемость',
+                                          'color': const Color(0xFF8A9BB8),
                                         },
                                       ];
 
@@ -857,7 +1188,7 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
                                     child: const Text(
                                       'Детальный отчет',
                                       style: TextStyle(
-                                        color: Color(0xFFED6A2E),
+                                        color: _orange,
                                         fontSize: 13,
                                       ),
                                     ),
@@ -867,15 +1198,12 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
                                         CrossAxisAlignment.start,
                                     children: [
                                       const SizedBox(height: 16),
-
-                                      // ScoreMetric — средние по группе
                                       Row(
                                         children: [
                                           Expanded(
                                             child: ScoreMetric(
                                               label: 'ДОМАШНИЕ\nЗАДАНИЯ',
-                                              score:
-                                                  countHw > 0 ? avgHw : 0.0,
+                                              score: countHw > 0 ? avgHw : 0,
                                             ),
                                           ),
                                           Expanded(
@@ -883,7 +1211,7 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
                                               label: 'ТЕСТЫ И ЭКЗАМЕНЫ',
                                               score: countClass > 0
                                                   ? avgClass
-                                                  : 0.0,
+                                                  : 0,
                                             ),
                                           ),
                                           Expanded(
@@ -897,15 +1225,12 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
                                                           'present')
                                                       .length
                                                       .toDouble()
-                                                  : 0.0,
+                                                  : 0,
                                             ),
                                           ),
                                         ],
                                       ),
-
                                       const SizedBox(height: 20),
-
-                                      // Заголовок + индикатор загрузки
                                       Row(
                                         children: [
                                           Text(
@@ -931,10 +1256,7 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
                                           ],
                                         ],
                                       ),
-
                                       const SizedBox(height: 12),
-
-                                      // Карточки оценок — тот же UI что был
                                       Row(
                                         children: grades
                                             .map(
@@ -982,18 +1304,6 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
                                             )
                                             .toList(),
                                       ),
-
-                                      // Текст ошибки если что-то пошло не так
-                                      if (journalState is JournalError) ...[
-                                        const SizedBox(height: 8),
-                                        Text(
-                                          'Не удалось загрузить оценки',
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            color: Colors.red[300],
-                                          ),
-                                        ),
-                                      ],
                                     ],
                                   ),
                                 );
@@ -1005,7 +1315,7 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
 
                       const SizedBox(width: 16),
 
-                      // ── Правая колонка — История из API ──
+                      // ── Правая колонка — История ──
                       SizedBox(
                         width: 300,
                         child: SectionCard(
@@ -1020,7 +1330,6 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
                                   ),
                                 );
                               }
-
                               if (state is HistoryError) {
                                 return Padding(
                                   padding: const EdgeInsets.all(16),
@@ -1033,10 +1342,8 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
                                   ),
                                 );
                               }
-
                               if (state is HistoryLoaded) {
                                 final items = state.history.results;
-
                                 if (items.isEmpty) {
                                   return Padding(
                                     padding: const EdgeInsets.all(24),
@@ -1049,7 +1356,6 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
                                     ),
                                   );
                                 }
-
                                 return Column(
                                   children: [
                                     const SizedBox(height: 8),
@@ -1072,7 +1378,9 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
                                         onPressed: () {},
                                         style: OutlinedButton.styleFrom(
                                           side: BorderSide(
-                                            color: Colors.grey.withOpacity(0.3),
+                                            color: Colors.grey.withOpacity(
+                                              0.3,
+                                            ),
                                           ),
                                           shape: RoundedRectangleBorder(
                                             borderRadius:
@@ -1094,7 +1402,6 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
                                   ],
                                 );
                               }
-
                               return const SizedBox();
                             },
                           ),
