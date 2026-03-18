@@ -62,6 +62,26 @@ class ExamApiService {
     }
   }
 
+  Future<void> saveExamResults({
+    required String examId,
+    required String status,
+    required List<Map<String, dynamic>> results,
+  }) async {
+    try {
+      await _dio.post(
+        '/exam/exams/$examId/results/',
+        data: {
+          'status': status,
+          'results': results,
+        },
+      );
+    } on DioException catch (e) {
+      throw Exception(
+        'Ошибка сохранения результатов: ${e.response?.data ?? e.message}',
+      );
+    }
+  }
+
   Future<void> deleteExam(String id) async {
     try {
       final response = await _dio.delete("/exam/exams/$id/");

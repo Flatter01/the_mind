@@ -11,7 +11,8 @@ class TransactionsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => TransactionCubit(TransactionApiService())..getTransactions(),
+      create: (_) =>
+          TransactionCubit(TransactionApiService())..getTransactions(),
       child: const _TransactionsView(),
     );
   }
@@ -28,7 +29,7 @@ class _TransactionsViewState extends State<_TransactionsView> {
   final TextEditingController _searchController = TextEditingController();
   String _selectedDate = '';
   int _currentPage = 1;
-  final int _perPage = 5;
+  final int _perPage = 10;
 
   List<TransactionModel> _filtered(List<TransactionModel> all) {
     final q = _searchController.text.toLowerCase();
@@ -49,8 +50,9 @@ class _TransactionsViewState extends State<_TransactionsView> {
   Widget build(BuildContext context) {
     return BlocBuilder<TransactionCubit, TransactionState>(
       builder: (context, state) {
-        final allTransactions =
-            state is TransactionLoaded ? state.transactions : <TransactionModel>[];
+        final allTransactions = state is TransactionLoaded
+            ? state.transactions
+            : <TransactionModel>[];
 
         final filtered = _filtered(allTransactions);
         final totalPages = _totalPages(filtered.length);
@@ -59,7 +61,6 @@ class _TransactionsViewState extends State<_TransactionsView> {
             .take(_perPage)
             .toList();
 
-        // ── Аналитика ──
         final totalAmount =
             allTransactions.fold(0, (s, t) => s + t.amountInt);
         final cashAmount = allTransactions
@@ -73,37 +74,32 @@ class _TransactionsViewState extends State<_TransactionsView> {
             .fold(0, (s, t) => s + t.amountInt);
 
         final now = DateTime.now();
-        final todayAmount = allTransactions
-            .where((t) {
-              try {
-                final d = DateTime.parse(t.createdAt).toLocal();
-                return d.year == now.year &&
-                    d.month == now.month &&
-                    d.day == now.day;
-              } catch (_) {
-                return false;
-              }
-            })
-            .fold(0, (s, t) => s + t.amountInt);
+        final todayAmount = allTransactions.where((t) {
+          try {
+            final d = DateTime.parse(t.createdAt).toLocal();
+            return d.year == now.year &&
+                d.month == now.month &&
+                d.day == now.day;
+          } catch (_) {
+            return false;
+          }
+        }).fold(0, (s, t) => s + t.amountInt);
 
-        final monthAmount = allTransactions
-            .where((t) {
-              try {
-                final d = DateTime.parse(t.createdAt).toLocal();
-                return d.year == now.year && d.month == now.month;
-              } catch (_) {
-                return false;
-              }
-            })
-            .fold(0, (s, t) => s + t.amountInt);
+        final monthAmount = allTransactions.where((t) {
+          try {
+            final d = DateTime.parse(t.createdAt).toLocal();
+            return d.year == now.year && d.month == now.month;
+          } catch (_) {
+            return false;
+          }
+        }).fold(0, (s, t) => s + t.amountInt);
 
         return Scaffold(
           backgroundColor: const Color(0xFFF2F5F7),
           body: state is TransactionLoading
               ? const Center(
-                  child: CircularProgressIndicator(
-                    color: Color(0xFFED6A2E),
-                  ),
+                  child:
+                      CircularProgressIndicator(color: Color(0xFFED6A2E)),
                 )
               : state is TransactionError
                   ? Center(
@@ -114,15 +110,15 @@ class _TransactionsViewState extends State<_TransactionsView> {
                               color: Colors.redAccent, size: 48),
                           const SizedBox(height: 12),
                           Text(state.message,
-                              style: const TextStyle(color: Colors.red)),
+                              style:
+                                  const TextStyle(color: Colors.red)),
                           const SizedBox(height: 16),
                           ElevatedButton(
                             onPressed: () => context
                                 .read<TransactionCubit>()
                                 .getTransactions(),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFED6A2E),
-                            ),
+                                backgroundColor: const Color(0xFFED6A2E)),
                             child: const Text('Повторить',
                                 style: TextStyle(color: Colors.white)),
                           ),
@@ -145,10 +141,8 @@ class _TransactionsViewState extends State<_TransactionsView> {
                         const SizedBox(height: 4),
                         Text(
                           'История платежей и поступлений',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Colors.grey[500],
-                          ),
+                          style:
+                              TextStyle(fontSize: 13, color: Colors.grey[500]),
                         ),
                         const SizedBox(height: 24),
 
@@ -156,37 +150,29 @@ class _TransactionsViewState extends State<_TransactionsView> {
                         Row(
                           children: [
                             Expanded(
-                              child: _topCard(
-                                'За сегодня',
-                                todayAmount,
-                                Icons.today_outlined,
-                              ),
+                              child: _topCard('За сегодня', todayAmount,
+                                  Icons.today_outlined),
                             ),
                             const SizedBox(width: 16),
                             Expanded(
-                              child: _topCard(
-                                'За месяц',
-                                monthAmount,
-                                Icons.calendar_month_outlined,
-                              ),
+                              child: _topCard('За месяц', monthAmount,
+                                  Icons.calendar_month_outlined),
                             ),
                             const SizedBox(width: 16),
                             Expanded(
                               child: _topCardOrange(
-                                'Всего получено',
-                                totalAmount,
-                              ),
+                                  'Всего получено', totalAmount),
                             ),
                           ],
                         ),
 
                         const SizedBox(height: 20),
 
-                        // ── Методы оплаты + фильтры ──
+                        // ✅ ФИКС: методы + фильтры в одну строку без пустого пространства
                         Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            // Методы
+                            // Методы оплаты — компактные горизонтальные карточки
                             SizedBox(
                               width: 200,
                               child: Column(
@@ -197,14 +183,14 @@ class _TransactionsViewState extends State<_TransactionsView> {
                                     cashAmount,
                                     const Color(0xFFED6A2E),
                                   ),
-                                  const SizedBox(height: 10),
+                                  const SizedBox(height: 8),
                                   _categoryCard(
                                     Icons.credit_card_outlined,
                                     'Карта',
                                     cardAmount,
                                     const Color(0xFF6B7FD4),
                                   ),
-                                  const SizedBox(height: 10),
+                                  const SizedBox(height: 8),
                                   _categoryCard(
                                     Icons.swap_horiz_outlined,
                                     'Перевод',
@@ -217,7 +203,7 @@ class _TransactionsViewState extends State<_TransactionsView> {
 
                             const SizedBox(width: 16),
 
-                            // Фильтры
+                            // ✅ ФИКС: фильтры без лишнего отступа сверху
                             Expanded(
                               child: Container(
                                 padding: const EdgeInsets.all(20),
@@ -226,12 +212,15 @@ class _TransactionsViewState extends State<_TransactionsView> {
                                   borderRadius: BorderRadius.circular(16),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Colors.black.withOpacity(0.04),
+                                      color:
+                                          Colors.black.withOpacity(0.04),
                                       blurRadius: 10,
                                     ),
                                   ],
                                 ),
                                 child: Row(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.end, // ✅ выравниваем по низу
                                   children: [
                                     Expanded(
                                       flex: 3,
@@ -240,29 +229,25 @@ class _TransactionsViewState extends State<_TransactionsView> {
                                         child: TextField(
                                           controller: _searchController,
                                           onChanged: (_) => setState(
-                                            () => _currentPage = 1,
-                                          ),
+                                              () => _currentPage = 1),
                                           decoration: InputDecoration(
                                             hintText: 'Имя или группа',
                                             hintStyle: TextStyle(
                                               fontSize: 13,
                                               color: Colors.grey[400],
                                             ),
-                                            prefixIcon: Icon(
-                                              Icons.search,
-                                              size: 17,
-                                              color: Colors.grey[400],
-                                            ),
+                                            prefixIcon: Icon(Icons.search,
+                                                size: 17,
+                                                color: Colors.grey[400]),
                                             border: InputBorder.none,
                                             contentPadding:
                                                 const EdgeInsets.symmetric(
-                                              vertical: 12,
-                                            ),
+                                                    vertical: 12),
                                           ),
                                         ),
                                       ),
                                     ),
-                                    const SizedBox(width: 16),
+                                    const SizedBox(width: 14),
                                     Expanded(
                                       flex: 2,
                                       child: _filterField(
@@ -279,25 +264,24 @@ class _TransactionsViewState extends State<_TransactionsView> {
                                               color: Colors.grey[400],
                                             ),
                                             prefixIcon: Icon(
-                                              Icons.calendar_today_outlined,
-                                              size: 15,
-                                              color: Colors.grey[400],
-                                            ),
+                                                Icons.calendar_today_outlined,
+                                                size: 15,
+                                                color: Colors.grey[400]),
                                             border: InputBorder.none,
                                             contentPadding:
                                                 const EdgeInsets.symmetric(
-                                              vertical: 12,
-                                            ),
+                                                    vertical: 12),
                                           ),
                                         ),
                                       ),
                                     ),
-                                    const SizedBox(width: 16),
-                                    Align(
-                                      alignment: Alignment.bottomCenter,
+                                    const SizedBox(width: 14),
+                                    // ✅ ФИКС: кнопка выровнена по низу вместе с полями
+                                    SizedBox(
+                                      height: 44,
                                       child: ElevatedButton.icon(
-                                        onPressed: () =>
-                                            setState(() => _currentPage = 1),
+                                        onPressed: () => setState(
+                                            () => _currentPage = 1),
                                         icon: const Icon(Icons.tune,
                                             color: Colors.white, size: 15),
                                         label: const Text(
@@ -313,9 +297,7 @@ class _TransactionsViewState extends State<_TransactionsView> {
                                               const Color(0xFFED6A2E),
                                           elevation: 0,
                                           padding: const EdgeInsets.symmetric(
-                                            horizontal: 20,
-                                            vertical: 14,
-                                          ),
+                                              horizontal: 20),
                                           shape: RoundedRectangleBorder(
                                             borderRadius:
                                                 BorderRadius.circular(10),
@@ -347,7 +329,6 @@ class _TransactionsViewState extends State<_TransactionsView> {
                           ),
                           child: Column(
                             children: [
-                              // Заголовок таблицы
                               Padding(
                                 padding: const EdgeInsets.fromLTRB(
                                     24, 20, 24, 16),
@@ -365,22 +346,22 @@ class _TransactionsViewState extends State<_TransactionsView> {
                                     Text(
                                       '${filtered.length} записей',
                                       style: TextStyle(
-                                        fontSize: 13,
-                                        color: Colors.grey[500],
-                                      ),
+                                          fontSize: 13,
+                                          color: Colors.grey[500]),
                                     ),
                                   ],
                                 ),
                               ),
 
-                              // Шапка
+                              // Шапка таблицы
                               Container(
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 24, vertical: 10),
                                 decoration: BoxDecoration(
                                   border: Border.symmetric(
                                     horizontal: BorderSide(
-                                      color: Colors.grey.withOpacity(0.08),
+                                      color:
+                                          Colors.grey.withOpacity(0.08),
                                     ),
                                   ),
                                 ),
@@ -392,26 +373,24 @@ class _TransactionsViewState extends State<_TransactionsView> {
                                     Expanded(
                                         flex: 2,
                                         child: _ColH('ДАТА И ВРЕМЯ')),
+                                    // ✅ ФИКС: уменьшен flex для колонки типа оплаты
                                     Expanded(
                                         flex: 2,
                                         child: _ColH('ТИП ОПЛАТЫ')),
-                                    Expanded(flex: 2, child: _ColH('СУММА')),
+                                    Expanded(
+                                        flex: 2, child: _ColH('СУММА')),
                                   ],
                                 ),
                               ),
 
-                              // Строки
                               if (pageItems.isEmpty)
                                 Padding(
                                   padding: const EdgeInsets.all(40),
                                   child: Center(
-                                    child: Text(
-                                      'Транзакций нет',
-                                      style: TextStyle(
-                                        color: Colors.grey[400],
-                                        fontSize: 14,
-                                      ),
-                                    ),
+                                    child: Text('Транзакций нет',
+                                        style: TextStyle(
+                                            color: Colors.grey[400],
+                                            fontSize: 14)),
                                   ),
                                 )
                               else
@@ -426,9 +405,8 @@ class _TransactionsViewState extends State<_TransactionsView> {
                                     Text(
                                       'Показано ${pageItems.length} из ${filtered.length}',
                                       style: TextStyle(
-                                        fontSize: 13,
-                                        color: Colors.grey[500],
-                                      ),
+                                          fontSize: 13,
+                                          color: Colors.grey[500]),
                                     ),
                                     const Spacer(),
                                     _buildPagination(totalPages),
@@ -458,7 +436,13 @@ class _TransactionsViewState extends State<_TransactionsView> {
     ];
     final name = t.studentName;
     final initials = name.trim().isNotEmpty
-        ? name.trim().split(' ').map((p) => p.isNotEmpty ? p[0] : '').take(2).join().toUpperCase()
+        ? name
+            .trim()
+            .split(' ')
+            .map((p) => p.isNotEmpty ? p[0] : '')
+            .take(2)
+            .join()
+            .toUpperCase()
         : '?';
     final color = colors[name.length % colors.length];
 
@@ -487,33 +471,34 @@ class _TransactionsViewState extends State<_TransactionsView> {
                     child: Text(
                       initials,
                       style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                        color: color,
-                      ),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          color: color),
                     ),
                   ),
                 ),
                 const SizedBox(width: 12),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      t.studentName,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF1A2233),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        t.studentName,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF1A2233),
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
-                    ),
-                    Text(
-                      t.groupName,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Colors.grey[500],
+                      Text(
+                        t.groupName,
+                        style: TextStyle(
+                            fontSize: 11, color: Colors.grey[500]),
+                        overflow: TextOverflow.ellipsis,
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -525,25 +510,23 @@ class _TransactionsViewState extends State<_TransactionsView> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  t.dateFormatted,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: Color(0xFF1A2233),
-                  ),
-                ),
-                Text(
-                  t.timeFormatted,
-                  style: TextStyle(fontSize: 11, color: Colors.grey[400]),
-                ),
+                Text(t.dateFormatted,
+                    style: const TextStyle(
+                        fontSize: 13, color: Color(0xFF1A2233))),
+                Text(t.timeFormatted,
+                    style: TextStyle(
+                        fontSize: 11, color: Colors.grey[400])),
               ],
             ),
           ),
 
-          // Тип оплаты
+          // ✅ ФИКС: бейдж не растягивается — Align + mainAxisSize.min
           Expanded(
             flex: 2,
-            child: _methodBadge(t.payWith, t.payWithDisplay),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: _methodBadge(t.payWith, t.payWithDisplay),
+            ),
           ),
 
           // Сумма
@@ -565,6 +548,7 @@ class _TransactionsViewState extends State<_TransactionsView> {
 
   // ── Виджеты ───────────────────────────────────────────────────────────────
 
+  // ✅ ФИКС: бейдж с mainAxisSize.min чтобы не растягивался
   Widget _methodBadge(String method, String display) {
     Color color;
     IconData icon;
@@ -578,7 +562,7 @@ class _TransactionsViewState extends State<_TransactionsView> {
         color = const Color(0xFF2ECC8A);
         icon = Icons.swap_horiz_outlined;
         break;
-      default: // cash
+      default:
         color = const Color(0xFFED6A2E);
         icon = Icons.account_balance_wallet_outlined;
     }
@@ -589,13 +573,14 @@ class _TransactionsViewState extends State<_TransactionsView> {
         color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(6),
       ),
+      // ✅ intrinsicWidth — бейдж занимает только нужное место
       child: Row(
-        mainAxisSize: MainAxisSize.min,
+        mainAxisSize: MainAxisSize.min, // ✅ ключевой фикс
         children: [
           Icon(icon, size: 12, color: color),
           const SizedBox(width: 5),
           Text(
-            display.toUpperCase(),
+            display.isEmpty ? method.toUpperCase() : display.toUpperCase(),
             style: TextStyle(
               fontSize: 10,
               fontWeight: FontWeight.w800,
@@ -627,7 +612,9 @@ class _TransactionsViewState extends State<_TransactionsView> {
         children: [
           Row(
             children: [
-              Text(label, style: TextStyle(fontSize: 13, color: Colors.grey[500])),
+              Text(label,
+                  style:
+                      TextStyle(fontSize: 13, color: Colors.grey[500])),
               const Spacer(),
               Container(
                 width: 36,
@@ -666,10 +653,9 @@ class _TransactionsViewState extends State<_TransactionsView> {
         children: [
           Row(
             children: [
-              Text(
-                label,
-                style: const TextStyle(fontSize: 13, color: Colors.white70),
-              ),
+              Text(label,
+                  style: const TextStyle(
+                      fontSize: 13, color: Colors.white70)),
               const Spacer(),
               Container(
                 width: 36,
@@ -679,10 +665,9 @@ class _TransactionsViewState extends State<_TransactionsView> {
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Icon(
-                  Icons.account_balance_wallet_outlined,
-                  size: 16,
-                  color: Colors.white,
-                ),
+                    Icons.account_balance_wallet_outlined,
+                    size: 16,
+                    color: Colors.white),
               ),
             ],
           ),
@@ -701,70 +686,70 @@ class _TransactionsViewState extends State<_TransactionsView> {
   }
 
   Widget _categoryCard(
-    IconData icon,
-    String label,
-    int amount,
-    Color color,
-  ) {
+      IconData icon, String label, int amount, Color color) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 8,
-          ),
+              color: Colors.black.withOpacity(0.04), blurRadius: 6),
         ],
       ),
       child: Row(
         children: [
           Container(
-            width: 36,
-            height: 36,
+            width: 34,
+            height: 34,
             decoration: BoxDecoration(
               color: color.withOpacity(0.12),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(icon, size: 17, color: color),
+            child: Icon(icon, size: 16, color: color),
           ),
           const SizedBox(width: 10),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: TextStyle(fontSize: 11, color: Colors.grey[500]),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                _fmtAmount(amount),
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800,
-                  color: Color(0xFF1A2233),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label,
+                    style: TextStyle(
+                        fontSize: 11, color: Colors.grey[500])),
+                const SizedBox(height: 2),
+                Text(
+                  _fmtAmount(amount),
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF1A2233),
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 
+  // ✅ ФИКС: поля фильтра без лишней высоты — убран SizedBox(height:40)
   Widget _filterField({required String label, required Widget child}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Text(label, style: TextStyle(fontSize: 12, color: Colors.grey[500])),
+        Text(label,
+            style: TextStyle(fontSize: 12, color: Colors.grey[500])),
         const SizedBox(height: 6),
         Container(
           height: 44,
           decoration: BoxDecoration(
             color: const Color(0xFFF8F9FB),
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: Colors.grey.withOpacity(0.15)),
+            border:
+                Border.all(color: Colors.grey.withOpacity(0.15)),
           ),
           child: child,
         ),
@@ -775,10 +760,8 @@ class _TransactionsViewState extends State<_TransactionsView> {
   Widget _buildPagination(int totalPages) {
     return Row(
       children: [
-        _pgBtn(
-          Icons.chevron_left,
-          _currentPage > 1 ? () => setState(() => _currentPage--) : null,
-        ),
+        _pgBtn(Icons.chevron_left,
+            _currentPage > 1 ? () => setState(() => _currentPage--) : null),
         const SizedBox(width: 4),
         ...List.generate(totalPages.clamp(0, 5), (i) {
           final p = i + 1;
@@ -792,7 +775,9 @@ class _TransactionsViewState extends State<_TransactionsView> {
                 height: 32,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: active ? const Color(0xFFED6A2E) : Colors.white,
+                  color: active
+                      ? const Color(0xFFED6A2E)
+                      : Colors.white,
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
                     color: active
@@ -813,11 +798,10 @@ class _TransactionsViewState extends State<_TransactionsView> {
           );
         }),
         _pgBtn(
-          Icons.chevron_right,
-          _currentPage < totalPages
-              ? () => setState(() => _currentPage++)
-              : null,
-        ),
+            Icons.chevron_right,
+            _currentPage < totalPages
+                ? () => setState(() => _currentPage++)
+                : null),
       ],
     );
   }
@@ -831,13 +815,12 @@ class _TransactionsViewState extends State<_TransactionsView> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.grey.withOpacity(0.25)),
+          border:
+              Border.all(color: Colors.grey.withOpacity(0.25)),
         ),
-        child: Icon(
-          icon,
-          size: 16,
-          color: onTap == null ? Colors.grey[300] : Colors.black87,
-        ),
+        child: Icon(icon,
+            size: 16,
+            color: onTap == null ? Colors.grey[300] : Colors.black87),
       ),
     );
   }

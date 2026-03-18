@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:srm/src/the_mind/the_mind_exams/data/datasources/exam_api_service.dart';
 import 'package:srm/src/the_mind/the_mind_exams/data/models/exam_model.dart';
 import 'package:srm/src/the_mind/the_mind_group/data/datasources/group_api_service.dart';
 
@@ -40,6 +41,7 @@ class _EditExamDialogState extends State<EditExamDialog> {
   int _currentPage = 1;
   final int _perPage = 5;
   String _examStatus = 'planned';
+  bool _saving = false;
 
   final List<ExamStudentRow> _students = [];
 
@@ -78,6 +80,51 @@ class _EditExamDialogState extends State<EditExamDialog> {
       s.controller.dispose();
     }
     super.dispose();
+  }
+
+  Future<void> _saveResults(String newStatus) async {
+    setState(() {
+      _examStatus = newStatus;
+      _saving = true;
+    });
+    try {
+      await ExamApiService().saveExamResults(
+        examId: widget.exam.id,
+        status: newStatus,
+        results: _students
+            .map((s) => {
+                  'first_name': s.firstName,
+                  'last_name': s.lastName,
+                  'score': s.score ?? 0,
+                  'status': s.status == StudentStatus.present
+                      ? 'present'
+                      : s.status == StudentStatus.absent
+                          ? 'absent'
+                          : 'waiting',
+                })
+            .toList(),
+      );
+      widget.onSave();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Результаты сохранены'),
+            backgroundColor: Color(0xFF2ECC8A),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Ошибка: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   int get _totalStudents => _students.length;
@@ -165,9 +212,9 @@ class _EditExamDialogState extends State<EditExamDialog> {
 
                 // Завершить
                 OutlinedButton.icon(
-                  onPressed: _examStatus == 'planned'
+                  onPressed: (_examStatus == 'planned' || _saving)
                       ? null
-                      : () => setState(() => _examStatus = 'finished'),
+                      : () => _saveResults('finished'),
                   icon: Icon(Icons.stop_outlined, size: 16, color: Colors.grey[700]),
                   label: Text(
                     'Завершить',

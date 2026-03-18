@@ -25,6 +25,7 @@ import 'package:srm/src/the_mind/the_mind_students/presentation/student/widgets/
 import 'package:srm/src/the_mind/the_mind_students/presentation/student/widgets/add_student/add_student_dialog.dart';
 import 'package:srm/src/the_mind/the_mind_students/presentation/student/widgets/add_student/add_student_dialog_responsive.dart';
 import 'package:srm/src/the_mind/the_mind_task/the_mind_task_page.dart';
+import 'package:srm/src/the_mind/the_mind_teacher/presentation/the_mind_analitic_teacher.dart';
 import 'package:srm/src/the_mind/the_mind_teacher/presentation/the_mind_teacher_page.dart';
 import 'package:srm/src/the_mind/the_mind_transactions/presentation/transactions_page.dart';
 import 'package:srm/src/the_mind/the_mind_workers/presentation/the_mind_workers_page.dart';
@@ -174,7 +175,7 @@ class _WebCustomBottomNavState extends State<WebCustomBottomNav> {
       case 5:
         return TheMindExamsPage();
       case 6:
-        return const TheMindTeacherPage();
+        return const TheMindAnaliticTeacher();
       case 7:
         return const TheMindTaskPage();
       case 8:

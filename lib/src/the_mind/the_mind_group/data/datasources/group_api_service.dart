@@ -151,6 +151,11 @@ class GroupRepository {
         throw Exception('Неожиданный статус: ${response.statusCode}');
       }
     } on DioException catch (e) {
+      print('=== CREATE GROUP ERROR ===');
+      print('Status: ${e.response?.statusCode}');
+      print('Data: ${e.response?.data}');
+      print('Message: ${e.message}');
+      print('==========================');
       throw Exception(
         'Ошибка создания группы: ${e.response?.data ?? e.message}',
       );

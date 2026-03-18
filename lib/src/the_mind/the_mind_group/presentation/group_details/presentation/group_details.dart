@@ -3,6 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:srm/src/the_mind/the_mind_group/data/models/group_model.dart';
 import 'package:srm/src/the_mind/the_mind_group/presentation/cubit/group/group_cubit.dart';
 import 'package:srm/src/the_mind/the_mind_group/presentation/cubit/group/group_state.dart';
+import 'package:srm/src/the_mind/the_mind_students/data/datasources/student_api_service.dart';
+import 'package:srm/src/the_mind/the_mind_students/data/model/students/student_record_model.dart';
 
 class GroupDetails extends StatefulWidget {
   final int groupId;
@@ -16,10 +18,15 @@ class _GroupDetailsState extends State<GroupDetails> {
   final Map<int, bool> _attendance = {};
   final Map<int, int?> _grades = {};
   final Map<int, TextEditingController> _hwControllers = {};
+  bool _saving = false;
 
-  final String _lessonDate = '12.10.2023';
+  String get _lessonDate =>
+      DateTime.now().toIso8601String().substring(0, 10);
   final int _lessonNumber = 14;
   final int _totalLessons = 24;
+
+  // хранит teacherId после загрузки группы
+  String? _teacherId;
 
   @override
   void initState() {
@@ -45,6 +52,62 @@ class _GroupDetailsState extends State<GroupDetails> {
   }
 
   int get _presentCount => _attendance.values.where((v) => v).length;
+
+  Future<void> _saveJournal(
+    List<Map<String, dynamic>> students,
+  ) async {
+    if (_teacherId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Нет ID преподавателя')),
+      );
+      return;
+    }
+    setState(() => _saving = true);
+    try {
+      final records = students.map((s) {
+        final id = s['student'] as int;
+        final hwText = _hwControllers[id]?.text.trim() ?? '';
+        return StudentRecordModel(
+          studentId: id,
+          firstName: '',
+          lastName: '',
+          fullName: s['student_name'] as String? ?? '',
+          classScore: _grades[id],
+          homeworkScore: int.tryParse(hwText),
+          attendance: (_attendance[id] ?? false) ? 'present' : 'absent',
+          absenceReason: '',
+        );
+      }).toList();
+
+      await StudentRepository().saveJournal(
+        groupId: widget.groupId,
+        lessonDate: _lessonDate,
+        teacherId: _teacherId!,
+        records: records,
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Журнал сохранён'),
+            backgroundColor: Color(0xFF2ECC8A),
+          ),
+        );
+      }
+    } catch (e) {
+      print("erroorr$e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Ошибка: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -93,6 +156,13 @@ class _GroupDetailsState extends State<GroupDetails> {
 
         final group = state.group;
         final students = state.students;
+
+        // сохраняем teacherId при первой загрузке
+        if (_teacherId == null && group.teacher != null) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) setState(() => _teacherId = group.teacher);
+          });
+        }
         final price = double.tryParse(group.price ?? '0') ?? 0.0;
         final dailyIncome = _presentCount * price;
 
@@ -110,7 +180,7 @@ class _GroupDetailsState extends State<GroupDetails> {
                     const SizedBox(height: 20),
                     _buildInfoAndFinance(group, dailyIncome),
                     const SizedBox(height: 20),
-                    Expanded(child: _buildAttendanceTable(students)),
+                    Expanded(child: _buildAttendanceTable(students, group)),
                   ],
                 ),
               ),
@@ -372,7 +442,7 @@ class _GroupDetailsState extends State<GroupDetails> {
   }
 
   // ── Таблица — оригинальный UI, данные из API ────────────────────
-  Widget _buildAttendanceTable(List<Map<String, dynamic>> students) {
+  Widget _buildAttendanceTable(List<Map<String, dynamic>> students, GroupModel group) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -416,6 +486,36 @@ class _GroupDetailsState extends State<GroupDetails> {
                 Text(
                   'Урок №$_lessonNumber из $_totalLessons',
                   style: TextStyle(fontSize: 13, color: Colors.grey[500]),
+                ),
+                const SizedBox(width: 16),
+                ElevatedButton.icon(
+                  onPressed: _saving ? null : () => _saveJournal(students),
+                  icon: _saving
+                      ? const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Icon(Icons.save_outlined, size: 15, color: Colors.white),
+                  label: Text(
+                    _saving ? 'Сохранение...' : 'Сохранить',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFED6A2E),
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
                 ),
               ],
             ),

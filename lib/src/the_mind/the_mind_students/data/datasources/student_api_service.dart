@@ -36,7 +36,7 @@ class StudentRepository {
   }) async {
     try {
       final response = await _dio.get(
-        "/teacher/groups/$groupId/journal",
+        "/teacher/groups/$groupId/journal/",
         queryParameters: {"lesson_date": lessonDate, "teacher_id": teacherId},
       );
 
@@ -164,33 +164,6 @@ class StudentRepository {
     }
   }
 
-  Future<List<LidModels>> getLeads() async {
-    try {
-      final response = await _dio.get("/student/leads/");
-      final List data = response.data as List;
-
-      return data.map((e) {
-        final map = e as Map<String, dynamic>;
-        return LidModels(
-          name: map['first_name'] ?? 'Без имени',
-          phone: map['phone'] ?? '',
-          group: '', // можно оставить пустым или заполнять позже
-          date: '', // у лидов дата добавления нет, можно присвоить пустую
-          status: _mapStatus(map['status']),
-          gender: "",
-          branch: "", // заполнять при необходимости
-          tariff: "", // заполнять при необходимости
-          day: "", // заполнять при необходимости
-          reason: map['comment'] ?? "",
-        );
-      }).toList();
-    } on DioException catch (e) {
-      throw Exception(
-        "Ошибка загрузки лидов: ${e.response?.data ?? e.message}",
-      );
-    }
-  }
-
   String _mapStatus(String? apiStatus) {
     switch (apiStatus) {
       case 'new':
@@ -218,7 +191,7 @@ class StudentRepository {
   }) async {
     try {
       final response = await _dio.get(
-        "/teacher/groups/$groupId/journal",
+        "/teacher/groups/$groupId/journal/",
         queryParameters: {"lesson_date": lessonDate, "teacher_id": teacherId},
       );
       return JournalModel.fromJson(response.data as Map<String, dynamic>);
@@ -235,7 +208,7 @@ class StudentRepository {
   }) async {
     try {
       await _dio.post(
-        "/teacher/groups/$groupId/journal",
+        "/teacher/groups/$groupId/journal/",
         data: {
           "lesson_date": lessonDate,
           "teacher_id": teacherId,

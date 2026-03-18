@@ -120,10 +120,10 @@ final GoRouter appRouter = GoRouter(
       path: AppPages.workers,
       builder: (context, state) => const TheMindWorkersPage(),
     ),
-    GoRoute(
-      path: AppPages.workerProfile,
-      builder: (context, state) => const TheMindWorkesProfile(),
-    ),
+    // GoRoute(
+    //   path: AppPages.workerProfile,
+    //   builder: (context, state) => const TheMindWorkesProfile(admin: null,),
+    // ),
     GoRoute(
       path: AppPages.taskManager,
       builder: (context, state) => const TaskManagerPage(),

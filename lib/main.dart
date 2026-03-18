@@ -10,8 +10,10 @@ import 'package:srm/src/the_mind/the_mind_exams/data/datasources/exam_api_servic
 import 'package:srm/src/the_mind/the_mind_exams/presentation/cubit/exam_cubit.dart';
 import 'package:srm/src/the_mind/the_mind_group/data/datasources/group_api_service.dart';
 import 'package:srm/src/the_mind/the_mind_group/presentation/cubit/group/group_cubit.dart';
+import 'package:srm/src/the_mind/the_mind_students/data/datasources/lid_api_service.dart';
 import 'package:srm/src/the_mind/the_mind_students/data/datasources/student_api_payment_servise.dart';
 import 'package:srm/src/the_mind/the_mind_students/data/datasources/student_api_service.dart';
+import 'package:srm/src/the_mind/the_mind_students/presentation/faol_lidlar/cubit/lid_cubit.dart';
 import 'package:srm/src/the_mind/the_mind_students/presentation/student/cubit/journal/journal_cubit.dart';
 import 'package:srm/src/the_mind/the_mind_students/presentation/student/cubit/payment/payment_cubit.dart';
 import 'package:srm/src/the_mind/the_mind_students/presentation/student/cubit/dashboard/dashboard_cubit.dart';
@@ -52,6 +54,10 @@ void main() async {
           create: (_) =>
               TeacherCubit(repository: TeacherRepository())..getTeachers(),
         ),
+        BlocProvider(
+          create: (_) =>
+              LidCubit(LidApiService())
+        ),
       ],
       child: MyApp(),
     ),
@@ -66,6 +72,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'The Mind',
+      navigatorKey: navigatorKey,
       theme: ThemeData(
         colorScheme: ColorScheme.light(primary: AppColors.mainColor),
       ),
@@ -73,3 +80,6 @@ class MyApp extends StatelessWidget {
     );
   }
 }
+
+
+GlobalKey<NavigatorState> navigatorKey = GlobalKey();

@@ -20,14 +20,14 @@ class _TheMindWorkesProfileState extends State<TheMindWorkesProfile> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(child: _basicInfo()),
+              Expanded(child: Column(children:[ _basicInfo(),SizedBox(height: 16), _skillsCard()])),
               const SizedBox(width: 16),
               Expanded(child: _financeInfo()),
             ],
           ),
-          const SizedBox(height: 16),
-          _skillsCard(),
-          const SizedBox(height: 24),
+          // const SizedBox(height: 16),
+          // _skillsCard(),
+          // const SizedBox(height: 24),
         ],
       ),
     );
