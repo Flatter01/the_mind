@@ -79,3 +79,5 @@ class MyApp extends StatelessWidget {
     );
   }
 }
+
+GlobalKey<NavigatorState> navigatorKey = GlobalKey();

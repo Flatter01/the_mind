@@ -8,7 +8,7 @@ import 'package:srm/src/the_mind/the_mind_students/presentation/student/cubit/pa
 
 class AddPaymentDialogResponsive extends StatefulWidget {
   final List<StudentModel> students;
-  final VoidCallback? onPaymentSuccess; // ✅ колбэк для обновления списка
+  final VoidCallback? onPaymentSuccess;
 
   const AddPaymentDialogResponsive({
     super.key,
@@ -47,14 +47,12 @@ class _AddPaymentDialogResponsiveState
   static const _text = Color(0xFF1A1F36);
   static const _grey = Color(0xFF8A94A6);
 
+  // ✅ ФИКС: уточните у бэкенда нужное значение для перевода
+  // Обычно это 'online', 'bank_transfer' или 'transfer'
   final _payMethods = [
-    {'value': 'cash', 'label': 'Наличные', 'icon': Icons.payments_outlined},
-    {'value': 'card', 'label': 'Карта', 'icon': Icons.credit_card_outlined},
-    {
-      'value': 'transfer',
-      'label': 'Перевод',
-      'icon': Icons.swap_horiz_outlined,
-    },
+    {'value': 'cash',     'label': 'Наличные', 'icon': Icons.payments_outlined},
+    {'value': 'card',     'label': 'Карта',    'icon': Icons.credit_card_outlined},
+    {'value': 'transfer', 'label': 'Перевод',  'icon': Icons.swap_horiz_outlined},
   ];
 
   @override
@@ -109,8 +107,7 @@ class _AddPaymentDialogResponsiveState
 
   int get _rawBalance {
     if (_selected == null) return 0;
-    final paid =
-        double.tryParse(_selected!.paidAmount ?? '0') ?? 0;
+    final paid = double.tryParse(_selected!.paidAmount ?? '0') ?? 0;
     final total = double.tryParse(
           _selected!.finalPrice ?? _selected!.groupPrice ?? '0',
         ) ??
@@ -144,15 +141,6 @@ class _AddPaymentDialogResponsiveState
     final paymentMonth =
         '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
-    // print('=== PAYMENT DEBUG ===');
-    // print('student id: ${_selected!.id}');
-    // print('group id: ${_selected!.groupId}');
-    // print('amount: ${_amountCtrl.text.trim()}');
-    // print('payWith: $_payMethod');
-    // print('paymentMonth: $paymentMonth');
-    // print('administrator: $adminId');
-    // print('=====================');
-
     try {
       await context.read<PaymentCubit>().createPayment(
             student: _selected!.id ?? 0,
@@ -167,14 +155,9 @@ class _AddPaymentDialogResponsiveState
       if (!mounted) return;
 
       final state = context.read<PaymentCubit>().state;
-      print('State after createPayment: $state');
 
       if (state is PaymentSuccess) {
-        print('✅ PAYMENT SUCCESS — calling refresh');
-
-        // ✅ Вызываем колбэк ПЕРЕД закрытием диалога
         widget.onPaymentSuccess?.call();
-
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Платёж успешно сохранён'),
@@ -184,11 +167,9 @@ class _AddPaymentDialogResponsiveState
         );
         Navigator.pop(context);
       } else if (state is PaymentError) {
-        print('PaymentError: ${state.message}');
         _showError(state.message);
       }
     } catch (e) {
-      print('EXCEPTION: $e');
       if (!mounted) return;
       _showError(e.toString());
     } finally {
@@ -226,9 +207,7 @@ class _AddPaymentDialogResponsiveState
               Container(
                 padding: const EdgeInsets.fromLTRB(28, 24, 16, 20),
                 decoration: const BoxDecoration(
-                  border: Border(
-                    bottom: BorderSide(color: _border, width: 1),
-                  ),
+                  border: Border(bottom: BorderSide(color: _border, width: 1)),
                 ),
                 child: Row(
                   children: [
@@ -239,11 +218,8 @@ class _AddPaymentDialogResponsiveState
                         color: _orangeLight,
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Icon(
-                        Icons.payments_outlined,
-                        color: _orange,
-                        size: 20,
-                      ),
+                      child: const Icon(Icons.payments_outlined,
+                          color: _orange, size: 20),
                     ),
                     const SizedBox(width: 14),
                     const Column(
@@ -252,10 +228,9 @@ class _AddPaymentDialogResponsiveState
                         Text(
                           'Новый платёж',
                           style: TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w700,
-                            color: _text,
-                          ),
+                              fontSize: 17,
+                              fontWeight: FontWeight.w700,
+                              color: _text),
                         ),
                         Text(
                           'Введите данные оплаты',
@@ -266,11 +241,7 @@ class _AddPaymentDialogResponsiveState
                     const Spacer(),
                     IconButton(
                       onPressed: () => Navigator.pop(context),
-                      icon: Icon(
-                        Icons.close,
-                        color: Colors.grey[400],
-                        size: 20,
-                      ),
+                      icon: Icon(Icons.close, color: Colors.grey[400], size: 20),
                     ),
                   ],
                 ),
@@ -334,39 +305,28 @@ class _AddPaymentDialogResponsiveState
               Container(
                 padding: const EdgeInsets.fromLTRB(28, 16, 28, 24),
                 decoration: const BoxDecoration(
-                  border: Border(
-                    top: BorderSide(color: _border, width: 1),
-                  ),
+                  border: Border(top: BorderSide(color: _border, width: 1)),
                 ),
                 child: Row(
                   children: [
                     if (_amountCtrl.text.isNotEmpty) ...[
-                      const Icon(
-                        Icons.receipt_long_outlined,
-                        size: 14,
-                        color: _grey,
-                      ),
+                      const Icon(Icons.receipt_long_outlined,
+                          size: 14, color: _grey),
                       const SizedBox(width: 6),
                       Text(
                         '${_amountCtrl.text} сум',
                         style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: _orange,
-                        ),
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: _orange),
                       ),
                     ],
                     const Spacer(),
                     TextButton(
-                      onPressed:
-                          _isLoading ? null : () => Navigator.pop(context),
-                      child: Text(
-                        'Отмена',
-                        style: TextStyle(
-                          color: Colors.grey[500],
-                          fontSize: 14,
-                        ),
-                      ),
+                      onPressed: _isLoading ? null : () => Navigator.pop(context),
+                      child: Text('Отмена',
+                          style: TextStyle(
+                              color: Colors.grey[500], fontSize: 14)),
                     ),
                     const SizedBox(width: 10),
                     _buildSaveButton(),
@@ -379,8 +339,6 @@ class _AddPaymentDialogResponsiveState
       ),
     );
   }
-
-  // ── Поиск студента ────────────────────────────────────────────────────────
 
   Widget _buildStudentSearch() {
     return Column(
@@ -398,21 +356,17 @@ class _AddPaymentDialogResponsiveState
           child: Row(
             children: [
               const SizedBox(width: 14),
-              Icon(
-                Icons.search,
-                size: 18,
-                color: _showDropdown ? _orange : _grey,
-              ),
+              Icon(Icons.search, size: 18,
+                  color: _showDropdown ? _orange : _grey),
               const SizedBox(width: 10),
               Expanded(
                 child: _selected != null
                     ? Text(
                         '${_selected!.lastName ?? ''} ${_selected!.firstName ?? ''}',
                         style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: _text,
-                        ),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: _text),
                       )
                     : TextField(
                         controller: _searchCtrl,
@@ -443,11 +397,7 @@ class _AddPaymentDialogResponsiveState
                   onTap: _clearStudent,
                   child: Padding(
                     padding: const EdgeInsets.only(right: 12),
-                    child: Icon(
-                      Icons.close,
-                      size: 16,
-                      color: Colors.grey[400],
-                    ),
+                    child: Icon(Icons.close, size: 16, color: Colors.grey[400]),
                   ),
                 )
               else
@@ -455,8 +405,6 @@ class _AddPaymentDialogResponsiveState
             ],
           ),
         ),
-
-        // Дропдаун результатов
         if (_showDropdown && _selected == null)
           FadeTransition(
             opacity: _fadeAnim,
@@ -470,10 +418,8 @@ class _AddPaymentDialogResponsiveState
                       border: Border.all(color: _border),
                     ),
                     child: const Center(
-                      child: Text(
-                        'Студент не найден',
-                        style: TextStyle(fontSize: 13, color: _grey),
-                      ),
+                      child: Text('Студент не найден',
+                          style: TextStyle(fontSize: 13, color: _grey)),
                     ),
                   )
                 : Container(
@@ -495,10 +441,8 @@ class _AddPaymentDialogResponsiveState
                       shrinkWrap: true,
                       padding: const EdgeInsets.symmetric(vertical: 6),
                       itemCount: _filtered.length,
-                      separatorBuilder: (_, __) => Divider(
-                        height: 1,
-                        color: Colors.grey.withOpacity(0.1),
-                      ),
+                      separatorBuilder: (_, __) =>
+                          Divider(height: 1, color: Colors.grey.withOpacity(0.1)),
                       itemBuilder: (_, i) {
                         final s = _filtered[i];
                         return InkWell(
@@ -506,9 +450,7 @@ class _AddPaymentDialogResponsiveState
                           borderRadius: BorderRadius.circular(8),
                           child: Padding(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 10,
-                            ),
+                                horizontal: 14, vertical: 10),
                             child: Row(
                               children: [
                                 Container(
@@ -522,34 +464,29 @@ class _AddPaymentDialogResponsiveState
                                     child: Text(
                                       (s.firstName ?? '?')[0].toUpperCase(),
                                       style: const TextStyle(
-                                        color: _orange,
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 14,
-                                      ),
+                                          color: _orange,
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 14),
                                     ),
                                   ),
                                 ),
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         '${s.lastName ?? ''} ${s.firstName ?? ''}',
                                         style: const TextStyle(
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w600,
-                                          color: _text,
-                                        ),
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w600,
+                                            color: _text),
                                       ),
                                       const SizedBox(height: 2),
                                       Text(
                                         '${s.phone ?? ''} · ${s.groupName ?? '—'}',
                                         style: const TextStyle(
-                                          fontSize: 11,
-                                          color: _grey,
-                                        ),
+                                            fontSize: 11, color: _grey),
                                       ),
                                     ],
                                   ),
@@ -565,8 +502,6 @@ class _AddPaymentDialogResponsiveState
       ],
     );
   }
-
-  // ── Карточка студента ─────────────────────────────────────────────────────
 
   Widget _buildStudentCard() {
     final s = _selected!;
@@ -593,10 +528,9 @@ class _AddPaymentDialogResponsiveState
               child: Text(
                 (s.firstName ?? '?')[0].toUpperCase(),
                 style: const TextStyle(
-                  color: _orange,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 18,
-                ),
+                    color: _orange,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 18),
               ),
             ),
           ),
@@ -608,10 +542,9 @@ class _AddPaymentDialogResponsiveState
                 Text(
                   '${s.lastName ?? ''} ${s.firstName ?? ''}',
                   style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: _text,
-                  ),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: _text),
                 ),
                 const SizedBox(height: 3),
                 Text(
@@ -627,20 +560,20 @@ class _AddPaymentDialogResponsiveState
               Text(
                 'Долг',
                 style: TextStyle(
-                  fontSize: 10,
-                  color: Colors.grey[500],
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.4,
-                ),
+                    fontSize: 10,
+                    color: Colors.grey[500],
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.4),
               ),
               const SizedBox(height: 2),
               Text(
                 isDebt ? '${balance.abs()} сум' : '0 сум',
                 style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: isDebt ? Colors.redAccent : const Color(0xFF2ECC8A),
-                ),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: isDebt
+                        ? Colors.redAccent
+                        : const Color(0xFF2ECC8A)),
               ),
             ],
           ),
@@ -648,8 +581,6 @@ class _AddPaymentDialogResponsiveState
       ),
     );
   }
-
-  // ── Метод оплаты ──────────────────────────────────────────────────────────
 
   Widget _buildPayMethodSelector() {
     return Row(
@@ -663,31 +594,24 @@ class _AddPaymentDialogResponsiveState
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 150),
               margin: EdgeInsets.only(
-                right: i < _payMethods.length - 1 ? 10 : 0,
-              ),
+                  right: i < _payMethods.length - 1 ? 10 : 0),
               padding: const EdgeInsets.symmetric(vertical: 12),
               decoration: BoxDecoration(
                 color: isActive ? _orange : _bg,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: isActive ? _orange : _border,
-                ),
+                border: Border.all(color: isActive ? _orange : _border),
               ),
               child: Column(
                 children: [
-                  Icon(
-                    m['icon'] as IconData,
-                    size: 20,
-                    color: isActive ? Colors.white : _grey,
-                  ),
+                  Icon(m['icon'] as IconData,
+                      size: 20, color: isActive ? Colors.white : _grey),
                   const SizedBox(height: 4),
                   Text(
                     m['label'] as String,
                     style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: isActive ? Colors.white : _grey,
-                    ),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: isActive ? Colors.white : _grey),
                   ),
                 ],
               ),
@@ -697,8 +621,6 @@ class _AddPaymentDialogResponsiveState
       }).toList(),
     );
   }
-
-  // ── Поле суммы ────────────────────────────────────────────────────────────
 
   Widget _buildAmountField() {
     return Container(
@@ -713,18 +635,13 @@ class _AddPaymentDialogResponsiveState
         keyboardType: TextInputType.number,
         inputFormatters: [FilteringTextInputFormatter.digitsOnly],
         style: const TextStyle(
-          fontSize: 15,
-          fontWeight: FontWeight.w600,
-          color: _text,
-        ),
+            fontSize: 15, fontWeight: FontWeight.w600, color: _text),
         decoration: const InputDecoration(
           hintText: '0',
-          hintStyle: TextStyle(color: _grey, fontWeight: FontWeight.w400),
-          prefixIcon: Icon(
-            Icons.monetization_on_outlined,
-            size: 18,
-            color: _grey,
-          ),
+          hintStyle:
+              TextStyle(color: _grey, fontWeight: FontWeight.w400),
+          prefixIcon: Icon(Icons.monetization_on_outlined,
+              size: 18, color: _grey),
           suffixText: 'сум',
           suffixStyle: TextStyle(fontSize: 12, color: _grey),
           border: InputBorder.none,
@@ -734,8 +651,6 @@ class _AddPaymentDialogResponsiveState
       ),
     );
   }
-
-  // ── Date picker ───────────────────────────────────────────────────────────
 
   Widget _buildDatePicker() {
     return GestureDetector(
@@ -761,27 +676,23 @@ class _AddPaymentDialogResponsiveState
           color: _date != null ? _orangeLight : _bg,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: _date != null ? _orange.withOpacity(0.3) : _border,
-          ),
+              color: _date != null ? _orange.withOpacity(0.3) : _border),
         ),
         child: Row(
           children: [
             const SizedBox(width: 14),
-            Icon(
-              Icons.calendar_today_outlined,
-              size: 16,
-              color: _date != null ? _orange : _grey,
-            ),
+            Icon(Icons.calendar_today_outlined,
+                size: 16, color: _date != null ? _orange : _grey),
             const SizedBox(width: 10),
             Text(
               _date == null
                   ? 'Выбрать'
                   : '${_date!.day.toString().padLeft(2, '0')}.${_date!.month.toString().padLeft(2, '0')}.${_date!.year}',
               style: TextStyle(
-                fontSize: 13,
-                fontWeight: _date != null ? FontWeight.w600 : FontWeight.w400,
-                color: _date != null ? _orange : _grey,
-              ),
+                  fontSize: 13,
+                  fontWeight:
+                      _date != null ? FontWeight.w600 : FontWeight.w400,
+                  color: _date != null ? _orange : _grey),
             ),
           ],
         ),
@@ -789,14 +700,13 @@ class _AddPaymentDialogResponsiveState
     );
   }
 
-  // ── Кнопка сохранения ─────────────────────────────────────────────────────
-
   Widget _buildSaveButton() {
     return GestureDetector(
       onTap: _isLoading ? null : _submit,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 13),
+        padding:
+            const EdgeInsets.symmetric(horizontal: 28, vertical: 13),
         decoration: BoxDecoration(
           color: _isLoading ? _orange.withOpacity(0.6) : _orange,
           borderRadius: BorderRadius.circular(12),
@@ -813,9 +723,7 @@ class _AddPaymentDialogResponsiveState
                 width: 18,
                 height: 18,
                 child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: Colors.white,
-                ),
+                    strokeWidth: 2, color: Colors.white),
               )
             : const Row(
                 mainAxisSize: MainAxisSize.min,
@@ -825,10 +733,9 @@ class _AddPaymentDialogResponsiveState
                   Text(
                     'Сохранить',
                     style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600),
                   ),
                 ],
               ),
@@ -840,11 +747,10 @@ class _AddPaymentDialogResponsiveState
     return Text(
       text,
       style: const TextStyle(
-        fontSize: 10,
-        fontWeight: FontWeight.w700,
-        color: _grey,
-        letterSpacing: 0.8,
-      ),
+          fontSize: 10,
+          fontWeight: FontWeight.w700,
+          color: _grey,
+          letterSpacing: 0.8),
     );
   }
 }

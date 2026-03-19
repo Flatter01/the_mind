@@ -41,6 +41,21 @@ class _TheMindStudentsPageState extends State<TheMindStudentsPage> {
     context.read<StudentCubit>().getStudents();
   }
 
+  // ✅ Конвертируем API статус → русский лейбл (совпадает с StudentRow)
+  String _statusLabel(String apiStatus) {
+    switch (apiStatus.toLowerCase()) {
+      case 'inactive':
+        return 'Не активен';
+      case 'trial':
+        return 'Пробный';
+      case 'debtor':
+      case 'qarzdor':
+        return 'Должник';
+      default:
+        return 'Активен';
+    }
+  }
+
   List<AnalyticItem> _buildAnalytics(DashboardModel dashboard) {
     final cards = dashboard.cards;
     return [
@@ -90,8 +105,9 @@ class _TheMindStudentsPageState extends State<TheMindStudentsPage> {
   @override
   Widget build(BuildContext context) {
     final groupState = context.watch<GroupCubit>().state;
-    final groups =
-        groupState is GroupLoaded ? groupState.groups : <GroupModel>[];
+    final groups = groupState is GroupLoaded
+        ? groupState.groups
+        : <GroupModel>[];
 
     final groupNames = groups
         .map((g) => g.name ?? '')
@@ -116,16 +132,15 @@ class _TheMindStudentsPageState extends State<TheMindStudentsPage> {
           return TheMindStudentsPageShimmer();
         }
         if (state is StudentError) {
-          print(state.message);
           return Center(child: Text(state.message));
         }
         if (state is StudentLoaded) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (!mounted) return;
             context.read<DashboardCubit>().computeFromStudents(
-                  students: state.students,
-                  groupsCount: groups.length,
-                );
+              students: state.students,
+              groupsCount: groups.length,
+            );
           });
 
           final students = state.students;
@@ -133,28 +148,32 @@ class _TheMindStudentsPageState extends State<TheMindStudentsPage> {
           final filtered = students.where((s) {
             final q = _search.toLowerCase();
 
-            final matchSearch = _search.isEmpty ||
+            final matchSearch =
+                _search.isEmpty ||
                 (s.firstName ?? '').toLowerCase().contains(q) ||
                 (s.lastName ?? '').toLowerCase().contains(q) ||
                 (s.phone ?? '').toLowerCase().contains(q) ||
                 (s.groupName ?? '').toLowerCase().contains(q);
 
-            final matchTeacher = _selectedTeacher == null ||
+            final matchTeacher =
+                _selectedTeacher == null ||
                 (s.teacherName ?? '') == _selectedTeacher;
 
-            final matchCourse = _selectedCourse == null ||
-                (s.groupName ?? '')
-                    .toLowerCase()
-                    .contains(_selectedCourse!.toLowerCase());
+            final matchCourse =
+                _selectedCourse == null ||
+                (s.groupName ?? '').toLowerCase().contains(
+                  _selectedCourse!.toLowerCase(),
+                );
 
-            final matchStatus = _selectedStatus == null ||
-                s.status.toLowerCase() == _selectedStatus!.toLowerCase();
+            // ✅ ФИКС: сравниваем русский лейбл с русским лейблом
+            final matchStatus =
+                _selectedStatus == null ||
+                _statusLabel(s.status) == _selectedStatus;
 
             return matchSearch && matchTeacher && matchCourse && matchStatus;
           }).toList();
 
-          final totalPages =
-              (filtered.length / _perPage).ceil().clamp(1, 999);
+          final totalPages = (filtered.length / _perPage).ceil().clamp(1, 999);
           final pageStudents = filtered
               .skip((_currentPage - 1) * _perPage)
               .take(_perPage)
@@ -163,8 +182,7 @@ class _TheMindStudentsPageState extends State<TheMindStudentsPage> {
           return Scaffold(
             backgroundColor: AppColors.bgColor,
             body: ListView(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
               children: [
                 // ── Заголовок + кнопки ──
                 Row(
@@ -191,13 +209,10 @@ class _TheMindStudentsPageState extends State<TheMindStudentsPage> {
                       ],
                     ),
                     const Spacer(),
-
-                    // ── Добавить платеж ──
                     OutlinedButton.icon(
                       onPressed: () {
                         final paymentCubit = context.read<PaymentCubit>();
                         final studentCubit = context.read<StudentCubit>();
-
                         showDialog(
                           context: context,
                           barrierDismissible: false,
@@ -205,10 +220,7 @@ class _TheMindStudentsPageState extends State<TheMindStudentsPage> {
                             value: paymentCubit,
                             child: AddPaymentDialogResponsive(
                               students: students,
-                              // ✅ Колбэк — вызывается внутри диалога
-                              // сразу после PaymentSuccess
                               onPaymentSuccess: () {
-                                // print('=== REFRESHING STUDENTS ===');
                                 studentCubit.getStudents();
                               },
                             ),
@@ -230,8 +242,6 @@ class _TheMindStudentsPageState extends State<TheMindStudentsPage> {
                       ),
                     ),
                     const SizedBox(width: 12),
-
-                    // ── Добавить студента ──
                     ElevatedButton.icon(
                       onPressed: () async {
                         final studentCubit = context.read<StudentCubit>();
@@ -307,8 +317,7 @@ class _TheMindStudentsPageState extends State<TheMindStudentsPage> {
                       child: ListView.separated(
                         scrollDirection: Axis.horizontal,
                         itemCount: analytics.length,
-                        separatorBuilder: (_, __) =>
-                            const SizedBox(width: 16),
+                        separatorBuilder: (_, __) => const SizedBox(width: 16),
                         itemBuilder: (context, index) =>
                             AnalyticCard(item: analytics[index]),
                       ),
@@ -319,6 +328,7 @@ class _TheMindStudentsPageState extends State<TheMindStudentsPage> {
                 const SizedBox(height: 24),
 
                 // ── Фильтры ──
+                // ✅ Передаём русские лейблы статусов в фильтр
                 FiltersCard(
                   search: _search,
                   selectedDayType: _selectedDayType,
@@ -327,6 +337,7 @@ class _TheMindStudentsPageState extends State<TheMindStudentsPage> {
                   selectedStatus: _selectedStatus,
                   teachers: teacherNames,
                   courses: courseNames,
+                  // ← statuses: убрать, оно не нужно
                   onSearchChanged: (v) => setState(() {
                     _search = v;
                     _currentPage = 1;
@@ -356,7 +367,6 @@ class _TheMindStudentsPageState extends State<TheMindStudentsPage> {
                     _currentPage = 1;
                   }),
                 ),
-
                 const SizedBox(height: 20),
 
                 // ── Таблица студентов ──

@@ -204,6 +204,7 @@ class _AuthPageState extends State<AuthPage> {
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
+                                  color: Colors.white
                                 ),
                               ),
                             ),

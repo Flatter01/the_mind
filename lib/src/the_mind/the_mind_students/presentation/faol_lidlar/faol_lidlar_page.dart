@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:srm/src/core/colors/app_colors.dart';
 import 'package:srm/src/the_mind/the_mind_students/data/datasources/lid_api_service.dart';
-import 'package:srm/src/the_mind/the_mind_students/data/model/lids/lid_models.dart' show LidModel;
+import 'package:srm/src/the_mind/the_mind_students/data/model/lids/lid_models.dart'
+    show LidModel;
 import 'package:srm/src/the_mind/the_mind_students/presentation/faol_lidlar/cubit/lid_cubit.dart';
 import 'package:srm/src/the_mind/the_mind_students/presentation/faol_lidlar/cubit/lid_state.dart';
 
@@ -58,9 +59,11 @@ class _FaolLidlarViewState extends State<_FaolLidlarView> {
   List<LidModel> _filter(List<LidModel> list) {
     if (_search.isEmpty) return list;
     return list
-        .where((e) =>
-            e.firstName.toLowerCase().contains(_search.toLowerCase()) ||
-            (e.phone ?? '').contains(_search))
+        .where(
+          (e) =>
+              e.firstName.toLowerCase().contains(_search.toLowerCase()) ||
+              (e.phone ?? '').contains(_search),
+        )
         .toList();
   }
 
@@ -82,7 +85,7 @@ class _FaolLidlarViewState extends State<_FaolLidlarView> {
   void _showStatusPicker(LidModel lead) {
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogCtx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Сменить статус'),
         content: SizedBox(
@@ -93,7 +96,8 @@ class _FaolLidlarViewState extends State<_FaolLidlarView> {
               final isCurrent = status == lead.statusDisplay;
               return ListTile(
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10)),
+                  borderRadius: BorderRadius.circular(10),
+                ),
                 tileColor: isCurrent ? _orange.withOpacity(0.1) : null,
                 title: Text(status),
                 trailing: isCurrent
@@ -102,12 +106,10 @@ class _FaolLidlarViewState extends State<_FaolLidlarView> {
                 onTap: () {
                   if (lead.id != null) {
                     context.read<LidCubit>().changeStatus(
-                          id: lead.id!,
-                          statusDisplay: status,
-                          onSuccess: () {
-                            Navigator.pop(context);
-                          },
-                        );
+                      id: lead.id!,
+                      statusDisplay: status,
+                      onSuccess: () => Navigator.pop(dialogCtx),
+                    );
                   }
                 },
               );
@@ -118,19 +120,26 @@ class _FaolLidlarViewState extends State<_FaolLidlarView> {
     );
   }
 
-  void _openEditDialog({LidModel? lead}) {
+  Future<void> _openEditDialog({LidModel? lead}) async {
     final firstNameCtrl = TextEditingController(text: lead?.firstName ?? '');
     final phoneCtrl = TextEditingController(text: lead?.phone ?? '');
     final commentCtrl = TextEditingController(text: lead?.comment ?? '');
 
     String? source = lead?.source;
     String? gender = lead?.gender;
-    String status = lead?.status ?? 'new';
+    String status = lead?.status ?? 'lead';
 
-    final sources = ['instagram', 'telegram', 'call', 'friends', 'ads', 'other'];
+    final sources = [
+      'instagram',
+      'telegram',
+      'call',
+      'friends',
+      'ads',
+      'other',
+    ];
     final genders = ['male', 'female'];
     final statuses = {
-      'new': 'Лиды',
+      'lead': 'Лиды',
       'waiting': 'В ожидании',
       'came': 'Пришёл',
       'not_came': 'Не пришёл',
@@ -138,16 +147,19 @@ class _FaolLidlarViewState extends State<_FaolLidlarView> {
       'no_answer': 'Не ответил',
     };
 
-    showDialog(
+    await showDialog(
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) {
         return Dialog(
           backgroundColor: Colors.white,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          insetPadding:
-              const EdgeInsets.symmetric(horizontal: 40, vertical: 32),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 40,
+            vertical: 32,
+          ),
           child: SizedBox(
             width: 480,
             child: StatefulBuilder(
@@ -161,7 +173,8 @@ class _FaolLidlarViewState extends State<_FaolLidlarView> {
                       decoration: BoxDecoration(
                         border: Border(
                           bottom: BorderSide(
-                              color: Colors.grey.withOpacity(0.12)),
+                            color: Colors.grey.withOpacity(0.12),
+                          ),
                         ),
                       ),
                       child: Row(
@@ -173,8 +186,11 @@ class _FaolLidlarViewState extends State<_FaolLidlarView> {
                               color: _orange.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(10),
                             ),
-                            child: const Icon(Icons.person_add_outlined,
-                                color: _orange, size: 18),
+                            child: const Icon(
+                              Icons.person_add_outlined,
+                              color: _orange,
+                              size: 18,
+                            ),
                           ),
                           const SizedBox(width: 12),
                           Text(
@@ -188,8 +204,11 @@ class _FaolLidlarViewState extends State<_FaolLidlarView> {
                           const Spacer(),
                           IconButton(
                             onPressed: () => Navigator.pop(dialogContext),
-                            icon: Icon(Icons.close,
-                                color: Colors.grey[400], size: 18),
+                            icon: Icon(
+                              Icons.close,
+                              color: Colors.grey[400],
+                              size: 18,
+                            ),
                           ),
                         ],
                       ),
@@ -264,27 +283,35 @@ class _FaolLidlarViewState extends State<_FaolLidlarView> {
                               controller: commentCtrl,
                               maxLines: 3,
                               style: const TextStyle(
-                                  fontSize: 13, color: Color(0xFF1A2233)),
+                                fontSize: 13,
+                                color: Color(0xFF1A2233),
+                              ),
                               decoration: InputDecoration(
                                 labelText: 'Комментарий',
                                 labelStyle: TextStyle(
-                                    fontSize: 13, color: Colors.grey[500]),
+                                  fontSize: 13,
+                                  color: Colors.grey[500],
+                                ),
                                 filled: true,
                                 fillColor: const Color(0xFFF7F8FA),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(10),
                                   borderSide: BorderSide(
-                                      color: Colors.grey.withOpacity(0.2)),
+                                    color: Colors.grey.withOpacity(0.2),
+                                  ),
                                 ),
                                 enabledBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(10),
                                   borderSide: BorderSide(
-                                      color: Colors.grey.withOpacity(0.2)),
+                                    color: Colors.grey.withOpacity(0.2),
+                                  ),
                                 ),
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(10),
                                   borderSide: const BorderSide(
-                                      color: _orange, width: 1.5),
+                                    color: _orange,
+                                    width: 1.5,
+                                  ),
                                 ),
                               ),
                             ),
@@ -298,8 +325,7 @@ class _FaolLidlarViewState extends State<_FaolLidlarView> {
                       padding: const EdgeInsets.fromLTRB(24, 14, 24, 20),
                       decoration: BoxDecoration(
                         border: Border(
-                          top: BorderSide(
-                              color: Colors.grey.withOpacity(0.12)),
+                          top: BorderSide(color: Colors.grey.withOpacity(0.12)),
                         ),
                       ),
                       child: Row(
@@ -307,14 +333,16 @@ class _FaolLidlarViewState extends State<_FaolLidlarView> {
                           const Spacer(),
                           TextButton(
                             onPressed: () => Navigator.pop(dialogContext),
-                            child: Text('Отмена',
-                                style: TextStyle(color: Colors.grey[500])),
+                            child: Text(
+                              'Отмена',
+                              style: TextStyle(color: Colors.grey[500]),
+                            ),
                           ),
                           const SizedBox(width: 10),
                           BlocBuilder<LidCubit, LidState>(
                             builder: (context, state) {
-                              final isLoading = state is LidCreating ||
-                                  state is LidUpdating;
+                              final isLoading =
+                                  state is LidCreating || state is LidUpdating;
                               return GestureDetector(
                                 onTap: isLoading
                                     ? null
@@ -328,8 +356,8 @@ class _FaolLidlarViewState extends State<_FaolLidlarView> {
                                                 phone: phoneCtrl.text.trim(),
                                                 status: status,
                                                 source: source,
-                                                comment:
-                                                    commentCtrl.text.trim(),
+                                                comment: commentCtrl.text
+                                                    .trim(),
                                               );
                                         } else {
                                           await context
@@ -341,19 +369,23 @@ class _FaolLidlarViewState extends State<_FaolLidlarView> {
                                                 phone: phoneCtrl.text.trim(),
                                                 source: source,
                                                 gender: gender,
-                                                comment:
-                                                    commentCtrl.text.trim(),
-                                                statusDisplay: status,
+                                                comment: commentCtrl.text
+                                                    .trim(),
+                                                statusDisplay: statuses[status],
                                               );
                                         }
-                                        if (dialogContext.mounted) {
-                                          Navigator.pop(dialogContext);
-                                        }
+                                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                                          if (dialogContext.mounted) {
+                                            Navigator.pop(dialogContext);
+                                          }
+                                        });
                                       },
                                 child: AnimatedContainer(
                                   duration: const Duration(milliseconds: 150),
                                   padding: const EdgeInsets.symmetric(
-                                      horizontal: 24, vertical: 12),
+                                    horizontal: 24,
+                                    vertical: 12,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: isLoading
                                         ? _orange.withOpacity(0.6)
@@ -401,6 +433,7 @@ class _FaolLidlarViewState extends State<_FaolLidlarView> {
         );
       },
     );
+    if (mounted) context.read<LidCubit>().getLeads();
   }
 
   @override
@@ -410,6 +443,7 @@ class _FaolLidlarViewState extends State<_FaolLidlarView> {
       body: BlocListener<LidCubit, LidState>(
         listener: (context, state) {
           if (state is LidError) {
+            print("errrorrr ${state.message}");
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(state.message),
@@ -434,28 +468,38 @@ class _FaolLidlarViewState extends State<_FaolLidlarView> {
                       decoration: InputDecoration(
                         hintText: 'Поиск по имени или телефону...',
                         hintStyle: TextStyle(
-                            fontSize: 13, color: Colors.grey[400]),
-                        prefixIcon: Icon(Icons.search,
-                            size: 18, color: Colors.grey[400]),
+                          fontSize: 13,
+                          color: Colors.grey[400],
+                        ),
+                        prefixIcon: Icon(
+                          Icons.search,
+                          size: 18,
+                          color: Colors.grey[400],
+                        ),
                         filled: true,
                         fillColor: Colors.white,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: BorderSide(
-                              color: Colors.grey.withOpacity(0.2)),
+                            color: Colors.grey.withOpacity(0.2),
+                          ),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: BorderSide(
-                              color: Colors.grey.withOpacity(0.2)),
+                            color: Colors.grey.withOpacity(0.2),
+                          ),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: const BorderSide(
-                              color: _orange, width: 1.5),
+                            color: _orange,
+                            width: 1.5,
+                          ),
                         ),
-                        contentPadding:
-                            const EdgeInsets.symmetric(vertical: 12),
+                        contentPadding: const EdgeInsets.symmetric(
+                          vertical: 12,
+                        ),
                       ),
                     ),
                   ),
@@ -472,17 +516,21 @@ class _FaolLidlarViewState extends State<_FaolLidlarView> {
                     label: const Text(
                       'Добавить лид',
                       style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 13),
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                      ),
                     ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: _orange,
                       elevation: 0,
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 20, vertical: 12),
+                        horizontal: 20,
+                        vertical: 12,
+                      ),
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                   ),
                 ],
@@ -500,8 +548,9 @@ class _FaolLidlarViewState extends State<_FaolLidlarView> {
                       );
                     }
 
-                    final leads =
-                        state is LidLoaded ? state.leads : <LidModel>[];
+                    final leads = state is LidLoaded
+                        ? state.leads
+                        : <LidModel>[];
                     final grouped = _groupByStatus(leads);
 
                     return ScrollConfiguration(
@@ -531,9 +580,9 @@ class _FaolLidlarViewState extends State<_FaolLidlarView> {
                                     _openEditDialog(lead: lead),
                                 onDeleteTap: (lead) {
                                   if (lead.id != null) {
-                                    context
-                                        .read<LidCubit>()
-                                        .deleteLead(lead.id!);
+                                    context.read<LidCubit>().deleteLead(
+                                      lead.id!,
+                                    );
                                   }
                                 },
                               ),
@@ -580,8 +629,10 @@ class _FaolLidlarViewState extends State<_FaolLidlarView> {
           borderRadius: BorderRadius.circular(10),
           borderSide: const BorderSide(color: _orange, width: 1.5),
         ),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: 12,
+        ),
       ),
     );
   }
@@ -613,16 +664,13 @@ class _FaolLidlarViewState extends State<_FaolLidlarView> {
           borderRadius: BorderRadius.circular(10),
           borderSide: const BorderSide(color: _orange, width: 1.5),
         ),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: 12,
+        ),
       ),
       items: items
-          .map(
-            (e) => DropdownMenuItem(
-              value: e,
-              child: Text(labels?[e] ?? e),
-            ),
-          )
+          .map((e) => DropdownMenuItem(value: e, child: Text(labels?[e] ?? e)))
           .toList(),
       onChanged: onChanged,
     );
@@ -673,8 +721,10 @@ class _KanbanColumn extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: titleColor.withOpacity(0.12),
                     borderRadius: BorderRadius.circular(20),
@@ -695,7 +745,7 @@ class _KanbanColumn extends StatelessWidget {
           // Карточки или пустое состояние
           if (data.isEmpty)
             Container(
-              height: 100, // ← размер как у карточки лида
+              height: 165, // ← размер как у карточки лида
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: Colors.white.withOpacity(0.5),
@@ -760,9 +810,7 @@ class _LidCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
         border: lead.status == 'not_came'
-            ? const Border(
-                left: BorderSide(color: _orange, width: 3),
-              )
+            ? const Border(left: BorderSide(color: _orange, width: 3))
             : Border.all(color: Colors.grey.withOpacity(0.12)),
         boxShadow: [
           BoxShadow(
@@ -790,8 +838,10 @@ class _LidCard extends StatelessWidget {
               ),
               if (_isNew)
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
                   decoration: BoxDecoration(
                     color: _orange,
                     borderRadius: BorderRadius.circular(6),
@@ -853,8 +903,7 @@ class _LidCard extends StatelessWidget {
             const SizedBox(height: 4),
             Row(
               children: [
-                Icon(Icons.comment_outlined,
-                    size: 12, color: Colors.grey[400]),
+                Icon(Icons.comment_outlined, size: 12, color: Colors.grey[400]),
                 const SizedBox(width: 5),
                 Expanded(
                   child: Text(
@@ -875,8 +924,10 @@ class _LidCard extends StatelessWidget {
               GestureDetector(
                 onTap: onStatusTap,
                 child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 5,
+                  ),
                   decoration: BoxDecoration(
                     color: _orange.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(6),
@@ -895,18 +946,22 @@ class _LidCard extends StatelessWidget {
               GestureDetector(
                 onTap: onEditTap,
                 child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 5,
+                  ),
                   decoration: BoxDecoration(
-                    border:
-                        Border.all(color: Colors.grey.withOpacity(0.25)),
+                    border: Border.all(color: Colors.grey.withOpacity(0.25)),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.edit_outlined,
-                          size: 11, color: Colors.grey[600]),
+                      Icon(
+                        Icons.edit_outlined,
+                        size: 11,
+                        color: Colors.grey[600],
+                      ),
                       const SizedBox(width: 4),
                       Text(
                         'Изменить',
@@ -923,8 +978,11 @@ class _LidCard extends StatelessWidget {
               const Spacer(),
               GestureDetector(
                 onTap: onDeleteTap,
-                child: Icon(Icons.delete_outline,
-                    size: 16, color: Colors.grey[300]),
+                child: Icon(
+                  Icons.delete_outline,
+                  size: 16,
+                  color: Colors.grey[300],
+                ),
               ),
             ],
           ),

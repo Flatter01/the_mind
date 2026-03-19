@@ -10,10 +10,12 @@ class StudentRow extends StatelessWidget {
   const StudentRow({super.key, required this.student});
 
   String get _initials {
-    final first =
-        (student.firstName ?? '').isNotEmpty ? student.firstName![0] : '';
-    final last =
-        (student.lastName ?? '').isNotEmpty ? student.lastName![0] : '';
+    final first = (student.firstName ?? '').isNotEmpty
+        ? student.firstName![0]
+        : '';
+    final last = (student.lastName ?? '').isNotEmpty
+        ? student.lastName![0]
+        : '';
     return '$last$first'.toUpperCase();
   }
 
@@ -44,6 +46,16 @@ class StudentRow extends StatelessWidget {
   Map<String, dynamic> _statusInfo() {
     final s = student.status.toLowerCase();
 
+    // ✅ 1. Заморозка — проверяем первой
+    if (s == 'frozen' || s == 'freeze' || s == 'замороженный') {
+      return {
+        'label': 'Заморожен',
+        'color': const Color(0xFF6B7FD4),
+        'bg': const Color(0xFF6B7FD4).withOpacity(0.1),
+      };
+    }
+
+    // ✅ 2. Не активен
     if (s == 'inactive' || s == 'не активен') {
       return {
         'label': 'Не активен',
@@ -52,6 +64,7 @@ class StudentRow extends StatelessWidget {
       };
     }
 
+    // ✅ 3. Пробный
     if (s == 'trial' || s == 'пробный' || s == 'probniy') {
       return {
         'label': 'Пробный',
@@ -60,7 +73,12 @@ class StudentRow extends StatelessWidget {
       };
     }
 
-    if (s == 'debtor' || s == 'qarzdor' || s == 'должник') {
+    // ✅ 4. Должник — либо явно из API, либо баланс отрицательный
+    final isBalanceNegative = (double.tryParse(student.balance) ?? 0) < 0;
+    if (s == 'debtor' ||
+        s == 'qarzdor' ||
+        s == 'должник' ||
+        isBalanceNegative) {
       return {
         'label': 'Должник',
         'color': const Color(0xFFED6A2E),
@@ -68,7 +86,7 @@ class StudentRow extends StatelessWidget {
       };
     }
 
-    // active — по умолчанию
+    // 5. Активен — по умолчанию
     return {
       'label': 'Активен',
       'color': const Color(0xFF2ECC8A),
@@ -175,7 +193,9 @@ class StudentRow extends StatelessWidget {
                   fontWeight: FontWeight.w700,
                   color: _isDebt
                       ? const Color(0xFFED6A2E) // должен — красный
-                      : const Color(0xFF2ECC8A), // оплачено/переплатил — зелёный
+                      : const Color(
+                          0xFF2ECC8A,
+                        ), // оплачено/переплатил — зелёный
                 ),
               ),
             ),
@@ -210,11 +230,7 @@ class StudentRow extends StatelessWidget {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
-                icon: const Icon(
-                  Icons.more_vert,
-                  color: Colors.grey,
-                  size: 20,
-                ),
+                icon: const Icon(Icons.more_vert, color: Colors.grey, size: 20),
                 onSelected: (value) {
                   if (value == 'delete') {
                     context.read<StudentCubit>().deleteStudent(student.id!);

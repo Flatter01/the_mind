@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:srm/main.dart';
 import 'package:srm/src/the_mind/the_mind_students/data/datasources/lid_api_service.dart';
 import 'package:srm/src/the_mind/the_mind_students/data/model/lids/lid_models.dart';
 import 'lid_state.dart';
@@ -68,8 +67,14 @@ class LidCubit extends Cubit<LidState> {
     String? statusDisplay, // принимаем русское название
   }) async {
     if (isClosed) return;
+    final prevLeads = state is LidLoaded
+        ? List<LidModel>.from((state as LidLoaded).leads)
+        : <LidModel>[];
     emit(LidUpdating());
     try {
+      final apiStatus = statusDisplay != null
+          ? LidModel.toApiStatus(statusDisplay)
+          : null;
       await _api.updateLead(
         id: id,
         firstName: firstName,
@@ -82,13 +87,10 @@ class LidCubit extends Cubit<LidState> {
         course: course,
         giveBook: giveBook,
         comment: comment,
-        // ✅ конвертируем русский → API статус
-        status: statusDisplay != null
-            ? LidModel.toApiStatus(statusDisplay)
-            : null,
+        status: apiStatus,
       );
+      if (isClosed) return;
       await getLeads();
-      emit(LidLoaded([]));
     } catch (e) {
       if (isClosed) return;
       emit(LidError(e.toString()));
@@ -109,8 +111,7 @@ class LidCubit extends Cubit<LidState> {
       await _api.updateStatus(id: id, status: apiStatus);
       if (isClosed) return;
       await getLeads();
-      // Navigator.pop(context);
-      // onSuccess();
+      WidgetsBinding.instance.addPostFrameCallback((_) => onSuccess());
     } catch (e) {
       if (isClosed) return;
       emit(LidError(e.toString()));
