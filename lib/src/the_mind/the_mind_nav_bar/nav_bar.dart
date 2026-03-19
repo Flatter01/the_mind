@@ -1,52 +1,58 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:srm/src/core/routes/app_pages.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:srm/src/core/colors/app_colors.dart';
-import 'package:srm/src/the_mind/home/presentation/home_page.dart';
-import 'package:srm/src/the_mind/main_the_mind/presentation/the_mind_page.dart';
-import 'package:srm/src/the_mind/the_mind_exams/presentation/the_mind_exams_page.dart';
-import 'package:srm/src/the_mind/the_mind_group/presentation/the_mind_groups/the_mind_group.dart';
 import 'package:srm/src/the_mind/the_mind_nav_bar/models/app_notification.dart';
 import 'package:srm/src/core/widgets/notification/notification_tile.dart';
 import 'package:srm/src/the_mind/the_mind_nav_bar/widget/task/open_task.dart';
 import 'package:srm/src/the_mind/the_mind_nav_bar/widget/top_bar.dart';
-import 'package:srm/src/the_mind/the_mind_profile/presentation/the_mind_profile_page.dart';
-import 'package:srm/src/the_mind/the_mind_salary/presentation/the_mind_salary_page.dart';
-import 'package:srm/src/the_mind/the_mind_settings/presentation/the_mind_settings_page.dart';
-import 'package:srm/src/the_mind/the_mind_students/presentation/faol_lidlar/faol_lidlar_page.dart';
 import 'package:srm/src/the_mind/the_mind_students/data/model/students/build_students_table_ltem.dart';
 import 'package:srm/src/the_mind/the_mind_students/presentation/student/cubit/payment/payment_cubit.dart';
 import 'package:srm/src/the_mind/the_mind_students/presentation/student/cubit/student/student_cubit.dart';
 import 'package:srm/src/the_mind/the_mind_students/presentation/student/cubit/student/student_state.dart';
-import 'package:srm/src/the_mind/the_mind_students/presentation/student/the_mind_students_page.dart';
 import 'package:srm/src/the_mind/the_mind_students/presentation/student/widgets/add_payment/add_payment_dialog_responsive.dart';
 import 'package:srm/src/the_mind/the_mind_students/presentation/student/widgets/add_student/add_student_dialog.dart';
 import 'package:srm/src/the_mind/the_mind_students/presentation/student/widgets/add_student/add_student_dialog_responsive.dart';
-import 'package:srm/src/the_mind/the_mind_task/the_mind_task_page.dart';
-import 'package:srm/src/the_mind/the_mind_teacher/presentation/the_mind_analitic_teacher.dart';
-import 'package:srm/src/the_mind/the_mind_teacher/presentation/the_mind_teacher_page.dart';
-import 'package:srm/src/the_mind/the_mind_transactions/presentation/transactions_page.dart';
-import 'package:srm/src/the_mind/the_mind_workers/presentation/the_mind_workers_page.dart';
 import 'package:srm/src/the_mind/the_mind_nav_bar/side_menu.dart';
 
 class WebCustomBottomNav extends StatefulWidget {
-  const WebCustomBottomNav({super.key});
+  final Widget child;
+  final String currentLocation;
+  const WebCustomBottomNav({super.key, required this.child, required this.currentLocation});
 
   @override
   State<WebCustomBottomNav> createState() => _WebCustomBottomNavState();
 }
 
 class _WebCustomBottomNavState extends State<WebCustomBottomNav> {
-  int selectedIndex = 0;
-  int? studentSubIndex;
+  static const _paths = [
+    AppPages.home,
+    AppPages.theMind,
+    AppPages.faolLidlar,
+    AppPages.students,
+    AppPages.groups,
+    AppPages.exams,
+    AppPages.teachers,
+    AppPages.tasks,
+    AppPages.workers,
+    AppPages.salary,
+    AppPages.transactions,
+    AppPages.settings,
+  ];
 
-  /// 🔥 добавили navigator key
-  final GlobalKey<NavigatorState> _contentNavKey = GlobalKey<NavigatorState>();
+  int _selectedIndex() {
+    final loc = widget.currentLocation;
+    for (int i = 0; i < _paths.length; i++) {
+      if (loc.startsWith(_paths[i])) return i;
+    }
+    return 0;
+  }
 
   final List<String> courses = ["All", "IELTS", "General English", "Math"];
-  bool get canPop => _contentNavKey.currentState?.canPop() ?? false;
 
   final List<BuildStudentsTableItem> students = [
     BuildStudentsTableItem(
@@ -160,43 +166,16 @@ class _WebCustomBottomNavState extends State<WebCustomBottomNav> {
     ),
   ];
 
-  Widget _buildScreen() {
-    switch (selectedIndex) {
-      case 0:
-        return const HomePage();
-      case 1:
-        return const TheMindPage();
-      case 2:
-        return const FaolLidlarPage();
-      case 3:
-        return const TheMindStudentsPage();
-      case 4:
-        return const TheMindGroup();
-      case 5:
-        return TheMindExamsPage();
-      case 6:
-        return const TheMindAnaliticTeacher();
-      case 7:
-        return const TheMindTaskPage();
-      case 8:
-        return const TheMindWorkersPage();
-      case 9:
-        return const TheMindSalaryPage();
-      case 10:
-        return const TransactionsPage();
-      case 11:
-        return const TheMindSettingsPage();
-      default:
-        return const SizedBox();
-    }
+  void _onMenuTap(BuildContext context, int index) {
+    context.go(_paths[index]);
   }
 
   @override
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 900;
+    final selectedIndex = _selectedIndex();
 
     if (isMobile) {
-      /// 📱 MOBILE VERSIO
       return Scaffold(
         backgroundColor: AppColors.bgColor,
         drawer: Drawer(
@@ -205,40 +184,34 @@ class _WebCustomBottomNavState extends State<WebCustomBottomNav> {
             isMobile: true,
             selectedIndex: selectedIndex,
             onTap: (index) {
-              Navigator.pop(context); // закрываем drawer
-              selectedIndex != index ? _onMenuTap(index) : () {};
+              Navigator.pop(context);
+              _onMenuTap(context, index);
             },
             onStudentSubTap: (int? sub) {
               Navigator.pop(context);
-              setState(() => studentSubIndex = sub);
-              _onMenuTap(selectedIndex);
             },
           ),
         ),
         body: Column(
           children: [
             TopBar(
-              showBackButton: canPop,
+              showBackButton: context.canPop(),
               isMobile: isMobile,
               onTask: _openTask,
               onNotifications: _openNotifications,
               onAddMenu: _openAddMenu,
               selectedBranch: selectedBranch,
               branches: branches,
-              onBranchChanged: (value) {
-                setState(() {
-                  selectedBranch = value;
-                });
-              },
-              onBack: () {},
+              onBranchChanged: (value) => setState(() => selectedBranch = value),
+              onBack: () => context.pop(),
             ),
-            Expanded(child: _buildScreen()),
+            Expanded(child: widget.child),
           ],
         ),
       );
     }
 
-    /// 💻 WEB VERSION (как было)
+    /// 💻 WEB VERSION
     return Scaffold(
       backgroundColor: AppColors.bgColor,
       body: Row(
@@ -246,64 +219,15 @@ class _WebCustomBottomNavState extends State<WebCustomBottomNav> {
           SideMenu(
             isMobile: false,
             selectedIndex: selectedIndex,
-            onTap: _onMenuTap,
-            onStudentSubTap: (int? sub) {
-              if (sub != selectedIndex){
-                setState(() => studentSubIndex = sub);
-              _contentNavKey.currentState?.pushReplacement(
-                MaterialPageRoute(builder: (_) => _buildScreen()),
-              );
-              }
-            },
+            onTap: (index) => _onMenuTap(context, index),
+            onStudentSubTap: (int? sub) {},
           ),
-          Expanded(
-            child: Column(
-              children: [
-                Expanded(
-                  child: Navigator(
-                    key: _contentNavKey,
-                    onGenerateRoute: (_) =>
-                        MaterialPageRoute(builder: (_) => _buildScreen()),
-                  ),
-                ),
-              ],
-            ),
-          ),
+          Expanded(child: widget.child),
         ],
       ),
     );
   }
 
-  void popInner() {
-    final nav = _contentNavKey.currentState;
-    if (nav != null && nav.canPop()) {
-      nav.pop();
-    }
-  }
-
-  /// 🔥 теперь обновляем вложенный navigator
-  void _onMenuTap(int index) {
-    if (selectedIndex != index) {
-      setState(() {
-        selectedIndex = index;
-        if (index != 2) studentSubIndex = null;
-      });
-
-      _contentNavKey.currentState?.pushReplacement(
-        MaterialPageRoute(builder: (_) => _buildScreen()),
-      );
-    }
-  }
-
-  void pushInner(Widget page) {
-    _contentNavKey.currentState
-        ?.push(MaterialPageRoute(builder: (_) => page))
-        .then((_) {
-          setState(() {}); // обновляем кнопку назад после pop
-        });
-
-    setState(() {}); // обновляем кнопку назад после push
-  }
 
   void _openNotifications() {
     showDialog(

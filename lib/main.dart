@@ -3,7 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:srm/src/core/colors/app_colors.dart';
 import 'package:srm/src/the_mind/auth/data/auth_api_service.dart';
-import 'package:srm/src/the_mind/auth/presentation/app_start_page.dart';
+import 'package:srm/src/core/routes/app_routes.dart';
 import 'package:srm/src/the_mind/auth/presentation/auth_page.dart';
 import 'package:srm/src/the_mind/auth/presentation/cubit/auth_cubit.dart';
 import 'package:srm/src/the_mind/the_mind_exams/data/datasources/exam_api_service.dart';
@@ -69,17 +69,13 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return MaterialApp.router(
       debugShowCheckedModeBanner: false,
       title: 'The Mind',
-      navigatorKey: navigatorKey,
       theme: ThemeData(
         colorScheme: ColorScheme.light(primary: AppColors.mainColor),
       ),
-      home: AppStartPage(),
+      routerConfig: appRouter,
     );
   }
 }
-
-
-GlobalKey<NavigatorState> navigatorKey = GlobalKey();

@@ -109,7 +109,7 @@ class LidCubit extends Cubit<LidState> {
       await _api.updateStatus(id: id, status: apiStatus);
       if (isClosed) return;
       await getLeads();
-      Navigator.pop(navigatorKey.currentContext!);
+      // Navigator.pop(context);
       // onSuccess();
     } catch (e) {
       if (isClosed) return;

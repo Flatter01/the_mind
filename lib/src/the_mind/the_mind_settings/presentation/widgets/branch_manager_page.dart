@@ -142,8 +142,9 @@ class _BranchManagerPageState extends State<BranchManagerPage> {
                 // ── Правая панель ──────────────────────────────────
                 SizedBox(
                   width: 280,
-                  child: Column(
-                    children: [
+                  child: SingleChildScrollView(
+                    child: Column(
+                      children: [
                       // Форма
                       _card(child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -256,6 +257,7 @@ class _BranchManagerPageState extends State<BranchManagerPage> {
                         ),
                       ),
                     ],
+                  ),
                   ),
                 ),
               ],

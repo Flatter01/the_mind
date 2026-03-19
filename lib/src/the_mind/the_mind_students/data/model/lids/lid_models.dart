@@ -32,7 +32,7 @@ class LidModel {
       id: json['id'] as int?,
       firstName: json['first_name'] as String? ?? '—',
       phone: json['phone'] as String?,
-      status: json['status'] as String? ?? 'leads',
+      status: json['status'] as String? ?? 'lead',
       source: json['source'] as String?,
       comment: json['comment'] as String?,
       date: json['date'] as String?,
@@ -47,7 +47,7 @@ class LidModel {
   // Маппинг API статус → русское название для канбана
   String get statusDisplay {
     switch (status) {
-      case 'leads':
+      case 'lead':
         return 'Лиды';
       case 'waiting':
         return 'В ожидании';
@@ -68,7 +68,7 @@ class LidModel {
   static String toApiStatus(String display) {
     switch (display) {
       case 'Лиды':
-        return 'leads';
+        return 'lead';
       case 'В ожидании':
         return 'waiting';
       case 'Пришёл':

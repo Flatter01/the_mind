@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:srm/src/core/colors/app_colors.dart';
+import 'package:go_router/go_router.dart';
+import 'package:srm/src/core/routes/app_pages.dart';
 import 'package:srm/src/the_mind/auth/presentation/cubit/auth_cubit.dart';
-import 'package:srm/src/the_mind/the_mind_nav_bar/nav_bar.dart';
 
 class AuthPage extends StatefulWidget {
   const AuthPage({super.key});
@@ -22,10 +22,7 @@ class _AuthPageState extends State<AuthPage> {
     return BlocListener<AuthCubit, AuthState>(
       listener: (context, state) {
         if (state is AuthSuccess) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (_) => const WebCustomBottomNav()),
-          );
+          context.go(AppPages.theMind);
         }
 
         if (state is AuthError) {
