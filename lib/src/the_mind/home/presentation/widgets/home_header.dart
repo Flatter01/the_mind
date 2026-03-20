@@ -16,6 +16,8 @@ import 'package:srm/src/the_mind/the_mind_students/presentation/student/widgets/
 import 'package:srm/src/the_mind/the_mind_students/presentation/student/widgets/add_student/add_student_dialog.dart';
 import 'package:srm/src/the_mind/the_mind_students/presentation/student/widgets/add_student/add_student_dialog_responsive.dart';
 
+const _orange = Color(0xFFED6A2E);
+
 class HomeHeader extends StatefulWidget {
   const HomeHeader({super.key});
 
@@ -75,11 +77,22 @@ class _HomeHeaderState extends State<HomeHeader> {
         const SizedBox(width: 20),
         const SizedBox(width: 300, child: BuildSearchBar()),
         const SizedBox(width: 10),
-        _HomeIconButton(icon: Icons.task, onTap: _openTask),
-        const SizedBox(width: 10),
-        _HomeIconButton(icon: Icons.notifications, onTap: _openNotifications),
-        const SizedBox(width: 10),
-        _HomeIconButton(icon: Icons.add, onTap: _openAddMenu),
+
+        // ── Кнопки ──
+        _HomeIconButton(
+          icon: Icons.task_alt_rounded,
+          tooltip: 'Задачи',
+          onTap: _openTask,
+        ),
+        const SizedBox(width: 8),
+        _HomeIconButton(
+          icon: Icons.notifications_outlined,
+          tooltip: 'Уведомления',
+          badge: _notifications.where((n) => !n.isCompleted).length,
+          onTap: _openNotifications,
+        ),
+        const SizedBox(width: 8),
+        _HomeAddButton(onTap: _openAddMenu),
       ],
     );
   }
@@ -99,20 +112,21 @@ class _HomeHeaderState extends State<HomeHeader> {
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: AppColors.bgColor,
-        title: const Text("Уведомления"),
+        title: const Text('Уведомления'),
         content: SizedBox(
           width: 420,
           child: _notifications.isEmpty
-              ? const Text("Уведомлений нет")
+              ? const Text('Уведомлений нет')
               : ListView.separated(
                   shrinkWrap: true,
                   itemCount: _notifications.length,
-                  separatorBuilder: (_, __) => const Divider(),
+                  separatorBuilder: (_, __) => const SizedBox(height: 8),
                   itemBuilder: (context, index) {
                     final item = _notifications[index];
                     return NotificationTile(
                       notification: item,
-                      onComplete: () => setState(() => item.isCompleted = true),
+                      onComplete: () =>
+                          setState(() => item.isCompleted = true),
                     );
                   },
                 ),
@@ -132,36 +146,24 @@ class _HomeHeaderState extends State<HomeHeader> {
         0,
         0,
       ),
-      items: const [
-        PopupMenuItem(
+      // ✅ Стиль меню как в FilterDropdown
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 8,
+      items: [
+        _menuItem(
           value: 'student',
-          child: Row(
-            children: [
-              Icon(Icons.person_add, size: 18),
-              SizedBox(width: 8),
-              Text("Добавить участника"),
-            ],
-          ),
+          icon: Icons.person_add_outlined,
+          label: 'Добавить студента',
         ),
-        PopupMenuItem(
+        _menuItem(
           value: 'lid',
-          child: Row(
-            children: [
-              Icon(Icons.person_add, size: 18),
-              SizedBox(width: 8),
-              Text("Добавить Lid"),
-            ],
-          ),
+          icon: Icons.person_search_outlined,
+          label: 'Добавить лид',
         ),
-        PopupMenuItem(
+        _menuItem(
           value: 'payment',
-          child: Row(
-            children: [
-              Icon(Icons.payments, size: 18),
-              SizedBox(width: 8),
-              Text("Совершить оплату"),
-            ],
-          ),
+          icon: Icons.payments_outlined,
+          label: 'Совершить оплату',
         ),
       ],
     );
@@ -173,7 +175,12 @@ class _HomeHeaderState extends State<HomeHeader> {
           context: context,
           builder: (_) => AddStudentDialogResponsive(
             courses: _courses,
-            groups: const ['Frontend A', 'Frontend B', 'IELTS 1', 'IELTS 2'],
+            groups: const [
+              'Frontend A',
+              'Frontend B',
+              'IELTS 1',
+              'IELTS 2',
+            ],
           ),
         );
       case 'lid':
@@ -182,8 +189,13 @@ class _HomeHeaderState extends State<HomeHeader> {
           context: context,
           builder: (_) => AddStudentDialog(
             courses: _courses,
-            groups: const ['Frontend A', 'Frontend B', 'IELTS 1', 'IELTS 2'],
-            branches: const ["C1", "C2", "C4"],
+            groups: const [
+              'Frontend A',
+              'Frontend B',
+              'IELTS 1',
+              'IELTS 2',
+            ],
+            branches: const ['C1', 'C2', 'C4'],
           ),
         );
       case 'payment':
@@ -196,13 +208,15 @@ class _HomeHeaderState extends State<HomeHeader> {
             child: BlocBuilder<StudentCubit, StudentState>(
               builder: (context, state) {
                 if (state is StudentLoading) {
-                  return const Center(child: CircularProgressIndicator());
+                  return const Center(
+                      child: CircularProgressIndicator());
                 }
                 if (state is StudentError) {
                   return Center(child: Text(state.message));
                 }
                 if (state is StudentLoaded) {
-                  return AddPaymentDialogResponsive(students: state.students);
+                  return AddPaymentDialogResponsive(
+                      students: state.students);
                 }
                 return const SizedBox();
               },
@@ -213,10 +227,25 @@ class _HomeHeaderState extends State<HomeHeader> {
     }
   }
 
+  PopupMenuItem<String> _menuItem({
+    required String value,
+    required IconData icon,
+    required String label,
+  }) {
+    return PopupMenuItem<String>(
+      value: value,
+      // ✅ Стиль как у _DropdownItem
+      padding: EdgeInsets.zero,
+      child: _MenuItemWidget(icon: icon, label: label),
+    );
+  }
+
   Future<void> _showPrintDialog(Map data) async {
     await showDialog(
       context: context,
       builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16)),
         title: const Text("To'lov muvaffaqiyatli"),
         content: const Text("Chek chiqarilsinmi?"),
         actions: [
@@ -229,7 +258,13 @@ class _HomeHeaderState extends State<HomeHeader> {
               Navigator.pop(context);
               _printReceipt(data);
             },
-            child: const Text("Ha, chiqarish"),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _orange,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text("Ha, chiqarish",
+                style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -237,10 +272,10 @@ class _HomeHeaderState extends State<HomeHeader> {
   }
 
   Future<void> _printReceipt(Map data) async {
-    final student = data["student"];
-    final method = data["method"];
-    final amount = data["amount"];
-    final date = data["date"] as DateTime;
+    final student = data['student'];
+    final method = data['method'];
+    final amount = data['amount'];
+    final date = data['date'] as DateTime;
 
     final pdf = pw.Document();
     pdf.addPage(
@@ -255,11 +290,12 @@ class _HomeHeaderState extends State<HomeHeader> {
               ),
             ),
             pw.SizedBox(height: 16),
-            pw.Text("Ism: ${student.name}"),
-            pw.Text("Guruh: ${student.group}"),
-            pw.Text("Telefon: ${student.phone}"),
+            pw.Text('Ism: ${student.name}'),
+            pw.Text('Guruh: ${student.group}'),
+            pw.Text('Telefon: ${student.phone}'),
             pw.Text("To'lov turi: $method"),
-            pw.Text("Sana: ${DateFormat('dd.MM.yyyy HH:mm').format(date)}"),
+            pw.Text(
+                "Sana: ${DateFormat('dd.MM.yyyy HH:mm').format(date)}"),
             pw.Divider(),
             pw.Text(
               "SUMMA: $amount so'm",
@@ -270,27 +306,210 @@ class _HomeHeaderState extends State<HomeHeader> {
       ),
     );
 
-    await Printing.layoutPdf(onLayout: (format) async => pdf.save());
+    await Printing.layoutPdf(
+        onLayout: (format) async => pdf.save());
   }
 }
 
-class _HomeIconButton extends StatelessWidget {
-  final IconData icon;
-  final void Function([TapDownDetails?]) onTap;
+// ─── Элемент меню с hover ─────────────────────────────────────────────────────
 
-  const _HomeIconButton({required this.icon, required this.onTap});
+class _MenuItemWidget extends StatefulWidget {
+  final IconData icon;
+  final String label;
+
+  const _MenuItemWidget({required this.icon, required this.label});
+
+  @override
+  State<_MenuItemWidget> createState() => _MenuItemWidgetState();
+}
+
+class _MenuItemWidgetState extends State<_MenuItemWidget> {
+  bool _hovered = false;
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTapDown: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(10),
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onHover: (_) {
+        if (!_hovered) setState(() => _hovered = true);
+      },
+      onExit: (_) {
+        if (mounted) setState(() => _hovered = false);
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 80),
+        color: _hovered ? _orange.withOpacity(0.06) : Colors.transparent,
+        padding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            Icon(
+              widget.icon,
+              size: 17,
+              color: _hovered ? _orange : const Color(0xFF8A94A6),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              widget.label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight:
+                    _hovered ? FontWeight.w600 : FontWeight.normal,
+                color: _hovered ? _orange : const Color(0xFF1A1F36),
+              ),
+            ),
+          ],
         ),
-        padding: const EdgeInsets.all(10),
-        child: Center(child: Icon(icon)),
+      ),
+    );
+  }
+}
+
+// ─── Иконка кнопка ────────────────────────────────────────────────────────────
+
+class _HomeIconButton extends StatefulWidget {
+  final IconData icon;
+  final String tooltip;
+  final int badge;
+  final void Function([TapDownDetails?]) onTap;
+
+  const _HomeIconButton({
+    required this.icon,
+    required this.tooltip,
+    required this.onTap,
+    this.badge = 0,
+  });
+
+  @override
+  State<_HomeIconButton> createState() => _HomeIconButtonState();
+}
+
+class _HomeIconButtonState extends State<_HomeIconButton> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onHover: (_) {
+        if (!_hovered) setState(() => _hovered = true);
+      },
+      onExit: (_) {
+        if (mounted) setState(() => _hovered = false);
+      },
+      child: GestureDetector(
+        onTapDown: widget.onTap,
+        child: Tooltip(
+          message: widget.tooltip,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: _hovered
+                  ? _orange.withOpacity(0.08)
+                  : Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: _hovered
+                    ? _orange.withOpacity(0.3)
+                    : Colors.grey.withOpacity(0.2),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.03),
+                  blurRadius: 8,
+                ),
+              ],
+            ),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Icon(
+                  widget.icon,
+                  size: 18,
+                  color: _hovered ? _orange : const Color(0xFF8A94A6),
+                ),
+                // ── Бейдж ──
+                if (widget.badge > 0)
+                  Positioned(
+                    top: 6,
+                    right: 6,
+                    child: Container(
+                      width: 8,
+                      height: 8,
+                      decoration: const BoxDecoration(
+                        color: _orange,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Кнопка добавить ─────────────────────────────────────────────────────────
+
+class _HomeAddButton extends StatefulWidget {
+  final void Function([TapDownDetails?]) onTap;
+
+  const _HomeAddButton({required this.onTap});
+
+  @override
+  State<_HomeAddButton> createState() => _HomeAddButtonState();
+}
+
+class _HomeAddButtonState extends State<_HomeAddButton> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onHover: (_) {
+        if (!_hovered) setState(() => _hovered = true);
+      },
+      onExit: (_) {
+        if (mounted) setState(() => _hovered = false);
+      },
+      child: GestureDetector(
+        onTapDown: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          height: 42,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            color: _hovered ? _orange.withOpacity(0.9) : _orange,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: _orange.withOpacity(_hovered ? 0.4 : 0.25),
+                blurRadius: _hovered ? 14 : 8,
+                offset: const Offset(0, 3),
+              ),
+            ],
+          ),
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.add, size: 17, color: Colors.white),
+              SizedBox(width: 6),
+              Text(
+                'Добавить',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

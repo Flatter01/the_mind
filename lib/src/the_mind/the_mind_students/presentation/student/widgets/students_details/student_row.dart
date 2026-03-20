@@ -238,11 +238,20 @@ class StudentRow extends StatelessWidget {
                   if (value == 'freeze') {
                     context.read<StudentCubit>().freezeStudent(student.id!);
                   }
+                  if (value == 'unfreeze') {
+                    context.read<StudentCubit>().unfreezeStudent(student.id!);
+                  }
                 },
-                itemBuilder: (context) => const [
-                  PopupMenuItem(value: 'delete', child: Text('Удалить')),
-                  PopupMenuItem(value: 'freeze', child: Text('Заморозить')),
-                ],
+                itemBuilder: (context) {
+                  final isFrozen = student.status == 'frozen';
+                  return [
+                    const PopupMenuItem(value: 'delete', child: Text('Удалить')),
+                    if (isFrozen)
+                      const PopupMenuItem(value: 'unfreeze', child: Text('Разморозить'))
+                    else
+                      const PopupMenuItem(value: 'freeze', child: Text('Заморозить')),
+                  ];
+                },
               ),
             ),
           ],

@@ -1,5 +1,5 @@
+// home_finance_row.dart
 import 'package:flutter/material.dart';
-
 import 'package:srm/src/the_mind/home/presentation/widgets/goal_progress_card.dart';
 import 'package:srm/src/the_mind/home/presentation/widgets/today_finance_service.dart';
 

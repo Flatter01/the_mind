@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:srm/src/the_mind/the_mind_task/widgets/list_row.dart';
 
-class TheMindTaskPage extends StatefulWidget {
-  const TheMindTaskPage({super.key});
-
-  @override
-  State<TheMindTaskPage> createState() => _TheMindTaskPageState();
-}
+const _orange = Color(0xFFED6A2E);
+const _bg = Color(0xFFF2F5F7);
+const _white = Colors.white;
+const _text = Color(0xFF1A2233);
+const _grey = Color(0xFF8A94A6);
 
 enum TaskStatus { todo, inProgress, review, done }
 
@@ -31,6 +31,13 @@ class TaskModel {
     this.deadlineSoon = false,
     this.done = false,
   });
+}
+
+class TheMindTaskPage extends StatefulWidget {
+  const TheMindTaskPage({super.key});
+
+  @override
+  State<TheMindTaskPage> createState() => _TheMindTaskPageState();
 }
 
 class _TheMindTaskPageState extends State<TheMindTaskPage> {
@@ -106,6 +113,20 @@ class _TheMindTaskPageState extends State<TheMindTaskPage> {
     ),
   ];
 
+  static const _statusLabels = [
+    'Нужно сделать',
+    'В работе',
+    'На проверке',
+    'Выполнено',
+  ];
+
+  static const _statusColors = [
+    Color(0xFF6B7FD4),
+    Color(0xFFFF9800),
+    Color(0xFF9B59B6),
+    Color(0xFF2ECC8A),
+  ];
+
   static const _cols = [
     {
       'status': TaskStatus.todo,
@@ -132,17 +153,51 @@ class _TheMindTaskPageState extends State<TheMindTaskPage> {
   List<TaskModel> _byStatus(TaskStatus s) =>
       _tasks.where((t) => t.status == s).toList();
 
+  // ── Смена статуса через три точки ────────────────────────────────────────
+  void _showStatusMenu(
+    BuildContext context,
+    TaskModel task,
+    Offset position,
+  ) async {
+    final RenderBox overlay =
+        Overlay.of(context).context.findRenderObject() as RenderBox;
+
+    final selected = await showMenu<TaskStatus>(
+      context: context,
+      position: RelativeRect.fromRect(
+        position & const Size(40, 40),
+        Offset.zero & overlay.size,
+      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 8,
+      items: TaskStatus.values.map((s) {
+        final isActive = task.status == s;
+        final color = _statusColors[s.index];
+        return PopupMenuItem<TaskStatus>(
+          value: s,
+          padding: EdgeInsets.zero,
+          child: _StatusMenuItem(
+            label: _statusLabels[s.index],
+            color: color,
+            isActive: isActive,
+          ),
+        );
+      }).toList(),
+    );
+
+    if (selected != null) {
+      setState(() {
+        task.status = selected;
+        task.done = selected == TaskStatus.done;
+      });
+    }
+  }
+
   void _showCreateDialog() {
     final titleCtrl = TextEditingController();
     final descCtrl = TextEditingController();
     String tag = 'ДИЗАЙН';
     TaskStatus status = TaskStatus.todo;
-    final statusLabels = [
-      'Нужно сделать',
-      'В работе',
-      'На проверке',
-      'Выполнено',
-    ];
 
     showDialog(
       context: context,
@@ -150,78 +205,139 @@ class _TheMindTaskPageState extends State<TheMindTaskPage> {
         builder: (ctx, setLocal) => Dialog(
           backgroundColor: Colors.white,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(24),
           ),
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 40,
+            vertical: 32,
+          ),
+          elevation: 0,
           child: SizedBox(
             width: 480,
-            child: Padding(
-              padding: const EdgeInsets.all(28),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Создать задачу',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFF1A2233),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Header
+                Container(
+                  padding: const EdgeInsets.fromLTRB(28, 24, 16, 20),
+                  decoration: BoxDecoration(
+                    border: Border(
+                      bottom: BorderSide(color: Colors.grey.withOpacity(0.12)),
                     ),
                   ),
-                  const SizedBox(height: 20),
-                  _dLabel('Название'),
-                  const SizedBox(height: 6),
-                  _dField(titleCtrl, 'Название задачи'),
-                  const SizedBox(height: 12),
-                  _dLabel('Описание'),
-                  const SizedBox(height: 6),
-                  _dArea(descCtrl),
-                  const SizedBox(height: 12),
-                  Row(
+                  child: Row(
                     children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _dLabel('Тег'),
-                            const SizedBox(height: 6),
-                            _dDropdown(
-                              [
-                                'ДИЗАЙН',
-                                'РАЗРАБОТКА',
-                                'КОПИРАЙТ',
-                                'QA',
-                                'МАРКЕТИНГ',
-                                'DEVOPS',
-                              ],
-                              tag,
-                              (v) => setLocal(() => tag = v!),
-                            ),
-                          ],
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: _orange.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(
+                          Icons.add_task_rounded,
+                          color: _orange,
+                          size: 18,
                         ),
                       ),
                       const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _dLabel('Статус'),
-                            const SizedBox(height: 6),
-                            _dDropdown(
-                              statusLabels,
-                              statusLabels[status.index],
-                              (v) => setLocal(
-                                () => status =
-                                    TaskStatus.values[statusLabels.indexOf(v!)],
-                              ),
-                            ),
-                          ],
+                      const Text(
+                        'Создать задачу',
+                        style: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w700,
+                          color: _text,
+                        ),
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        icon: Icon(
+                          Icons.close,
+                          color: Colors.grey[400],
+                          size: 18,
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 24),
-                  Row(
+                ),
+
+                // Body
+                Flexible(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(28),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _dLabel('НАЗВАНИЕ'),
+                        const SizedBox(height: 8),
+                        _dField(
+                          titleCtrl,
+                          'Название задачи',
+                          Icons.title_rounded,
+                        ),
+                        const SizedBox(height: 16),
+                        _dLabel('ОПИСАНИЕ'),
+                        const SizedBox(height: 8),
+                        _dArea(descCtrl),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _dLabel('ТЕГ'),
+                                  const SizedBox(height: 8),
+                                  _dDropdown(
+                                    [
+                                      'ДИЗАЙН',
+                                      'РАЗРАБОТКА',
+                                      'КОПИРАЙТ',
+                                      'QA',
+                                      'МАРКЕТИНГ',
+                                      'DEVOPS',
+                                    ],
+                                    tag,
+                                    (v) => setLocal(() => tag = v!),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _dLabel('СТАТУС'),
+                                  const SizedBox(height: 8),
+                                  _dDropdown(
+                                    _statusLabels,
+                                    _statusLabels[status.index],
+                                    (v) => setLocal(
+                                      () => status = TaskStatus
+                                          .values[_statusLabels.indexOf(v!)],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // Footer
+                Container(
+                  padding: const EdgeInsets.fromLTRB(28, 16, 28, 24),
+                  decoration: BoxDecoration(
+                    border: Border(
+                      top: BorderSide(color: Colors.grey.withOpacity(0.12)),
+                    ),
+                  ),
+                  child: Row(
                     children: [
                       Expanded(
                         child: OutlinedButton(
@@ -256,7 +372,7 @@ class _TheMindTaskPageState extends State<TheMindTaskPage> {
                                   title: titleCtrl.text.trim(),
                                   description: descCtrl.text.trim(),
                                   tag: tag,
-                                  tagColor: const Color(0xFFED6A2E),
+                                  tagColor: _orange,
                                   status: status,
                                 ),
                               ),
@@ -264,7 +380,7 @@ class _TheMindTaskPageState extends State<TheMindTaskPage> {
                             Navigator.pop(ctx);
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFED6A2E),
+                            backgroundColor: _orange,
                             elevation: 0,
                             padding: const EdgeInsets.symmetric(vertical: 13),
                             shape: RoundedRectangleBorder(
@@ -282,8 +398,8 @@ class _TheMindTaskPageState extends State<TheMindTaskPage> {
                       ),
                     ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),
@@ -294,7 +410,7 @@ class _TheMindTaskPageState extends State<TheMindTaskPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF2F5F7),
+      backgroundColor: _bg,
       body: CustomScrollView(
         slivers: [
           SliverToBoxAdapter(
@@ -303,7 +419,6 @@ class _TheMindTaskPageState extends State<TheMindTaskPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // ── Заголовок ─────────────────────────────────────────
                   Row(
                     children: [
                       Column(
@@ -314,7 +429,7 @@ class _TheMindTaskPageState extends State<TheMindTaskPage> {
                             style: TextStyle(
                               fontSize: 26,
                               fontWeight: FontWeight.w800,
-                              color: Color(0xFF1A2233),
+                              color: _text,
                             ),
                           ),
                           const SizedBox(height: 2),
@@ -328,37 +443,55 @@ class _TheMindTaskPageState extends State<TheMindTaskPage> {
                         ],
                       ),
                       const Spacer(),
-                      ElevatedButton.icon(
-                        onPressed: _showCreateDialog,
-                        icon: const Icon(
-                          Icons.add,
-                          color: Colors.white,
-                          size: 18,
-                        ),
-                        label: const Text(
-                          'Создать задачу',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 14,
+
+                      // ── Статистика ──
+                      ...TaskStatus.values.map((s) {
+                        final count = _byStatus(s).length;
+                        final color = _statusColors[s.index];
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 10),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 7,
+                            ),
+                            decoration: BoxDecoration(
+                              color: color.withOpacity(0.08),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: color.withOpacity(0.2)),
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 8,
+                                  height: 8,
+                                  decoration: BoxDecoration(
+                                    color: color,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  '$count',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    color: color,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFED6A2E),
-                          elevation: 0,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 22,
-                            vertical: 14,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                        ),
-                      ),
+                        );
+                      }),
+
+                      const SizedBox(width: 4),
+                      _CreateButton(onTap: _showCreateDialog),
                     ],
                   ),
+
                   const SizedBox(height: 20),
-                  // ── Переключатель ──────────────────────────────────────
+
                   Row(
                     children: [
                       _viewBtn(Icons.grid_view_rounded, 'Доска', 'board'),
@@ -386,7 +519,8 @@ class _TheMindTaskPageState extends State<TheMindTaskPage> {
     );
   }
 
-  // ── ДОСКА ──────────────────────────────────────────────────────────────
+  // ── ДОСКА ─────────────────────────────────────────────────────────────────
+
   Widget _boardView() {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -403,6 +537,15 @@ class _TheMindTaskPageState extends State<TheMindTaskPage> {
                 padding: const EdgeInsets.only(bottom: 14, right: 12),
                 child: Row(
                   children: [
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: color,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
                     Text(
                       label,
                       style: TextStyle(
@@ -431,15 +574,13 @@ class _TheMindTaskPageState extends State<TheMindTaskPage> {
                         ),
                       ),
                     ),
-                    const Spacer(),
-                    Icon(Icons.more_horiz, size: 16, color: Colors.grey[400]),
                   ],
                 ),
               ),
               Expanded(
                 child: ListView(
                   padding: const EdgeInsets.only(right: 12),
-                  children: tasks.map(_taskCard).toList(),
+                  children: tasks.map((t) => _taskCard(t)).toList(),
                 ),
               ),
             ],
@@ -449,113 +590,6 @@ class _TheMindTaskPageState extends State<TheMindTaskPage> {
     );
   }
 
-  // ── СПИСОК ─────────────────────────────────────────────────────────────
-  Widget _listView() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10),
-        ],
-      ),
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            child: Row(
-              children: const [
-                Expanded(flex: 4, child: _CH('ЗАДАЧА')),
-                Expanded(flex: 2, child: _CH('ТЕГ')),
-                Expanded(flex: 2, child: _CH('СТАТУС')),
-                Expanded(flex: 2, child: _CH('ДЕДЛАЙН')),
-              ],
-            ),
-          ),
-          Divider(color: Colors.grey.withOpacity(0.08), height: 1),
-          Expanded(
-            child: ListView.separated(
-              itemCount: _tasks.length,
-              separatorBuilder: (_, __) =>
-                  Divider(color: Colors.grey.withOpacity(0.06), height: 1),
-              itemBuilder: (_, i) {
-                final t = _tasks[i];
-                return Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 14,
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        flex: 4,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              t.title,
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                                decoration: t.done
-                                    ? TextDecoration.lineThrough
-                                    : null,
-                                color: const Color(0xFF1A2233),
-                              ),
-                            ),
-                            if (t.description.isNotEmpty)
-                              Text(
-                                t.description,
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: Colors.grey[400],
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                          ],
-                        ),
-                      ),
-                      Expanded(flex: 2, child: _tagChip(t.tag, t.tagColor)),
-                      Expanded(flex: 2, child: _statusChip(t.status)),
-                      Expanded(
-                        flex: 2,
-                        child: t.deadline != null
-                            ? Row(
-                                children: [
-                                  Icon(
-                                    Icons.calendar_today_outlined,
-                                    size: 12,
-                                    color: t.deadlineSoon
-                                        ? const Color(0xFFED6A2E)
-                                        : Colors.grey[400],
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    t.deadline!,
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: t.deadlineSoon
-                                          ? const Color(0xFFED6A2E)
-                                          : Colors.grey[500],
-                                    ),
-                                  ),
-                                ],
-                              )
-                            : const SizedBox(),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ── Карточка задачи ────────────────────────────────────────────────────
   Widget _taskCard(TaskModel t) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -563,6 +597,7 @@ class _TheMindTaskPageState extends State<TheMindTaskPage> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.grey.withOpacity(0.08)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.04),
@@ -579,13 +614,45 @@ class _TheMindTaskPageState extends State<TheMindTaskPage> {
               _tagChip(t.tag, t.tagColor),
               const Spacer(),
               if (!t.done && t.deadlineSoon)
-                const Icon(
-                  Icons.priority_high,
-                  size: 16,
-                  color: Color(0xFFED6A2E),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: _orange.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: const Icon(
+                    Icons.priority_high,
+                    size: 12,
+                    color: _orange,
+                  ),
                 ),
+              const SizedBox(width: 4),
+
+              // ✅ Три точки с меню смены статуса
+              GestureDetector(
+                onTapDown: (details) =>
+                    _showStatusMenu(context, t, details.globalPosition),
+                child: MouseRegion(
+                  cursor: SystemMouseCursors.click,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Icon(
+                      Icons.more_horiz,
+                      size: 16,
+                      color: Colors.grey[400],
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
+
           const SizedBox(height: 10),
           Text(
             t.title,
@@ -594,7 +661,7 @@ class _TheMindTaskPageState extends State<TheMindTaskPage> {
               fontWeight: FontWeight.w700,
               height: 1.35,
               decoration: t.done ? TextDecoration.lineThrough : null,
-              color: t.done ? Colors.grey[400] : const Color(0xFF1A2233),
+              color: t.done ? Colors.grey[400] : _text,
             ),
           ),
           if (t.description.isNotEmpty) ...[
@@ -619,7 +686,7 @@ class _TheMindTaskPageState extends State<TheMindTaskPage> {
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF1A2233),
+                    color: _text,
                   ),
                 ),
                 const Spacer(),
@@ -628,7 +695,7 @@ class _TheMindTaskPageState extends State<TheMindTaskPage> {
                   style: const TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFFED6A2E),
+                    color: _orange,
                   ),
                 ),
               ],
@@ -640,28 +707,26 @@ class _TheMindTaskPageState extends State<TheMindTaskPage> {
                 value: t.progress,
                 minHeight: 5,
                 backgroundColor: Colors.grey.withOpacity(0.12),
-                valueColor: const AlwaysStoppedAnimation<Color>(
-                  Color(0xFFED6A2E),
-                ),
+                valueColor: const AlwaysStoppedAnimation<Color>(_orange),
               ),
             ),
           ],
-          if (t.status == TaskStatus.review ||
-              t.deadline != null ||
-              t.done) ...[
+          if (t.deadline != null ||
+              t.done ||
+              t.status == TaskStatus.review) ...[
             const SizedBox(height: 14),
             Row(
               children: [
                 Container(
-                  width: 28,
-                  height: 28,
+                  width: 26,
+                  height: 26,
                   decoration: BoxDecoration(
                     color: t.tagColor.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(7),
                   ),
                   child: Icon(
                     Icons.person_outline,
-                    size: 14,
+                    size: 13,
                     color: t.tagColor,
                   ),
                 ),
@@ -701,9 +766,7 @@ class _TheMindTaskPageState extends State<TheMindTaskPage> {
                       Icon(
                         Icons.calendar_today_outlined,
                         size: 12,
-                        color: t.deadlineSoon
-                            ? const Color(0xFFED6A2E)
-                            : Colors.grey[400],
+                        color: t.deadlineSoon ? _orange : Colors.grey[400],
                       ),
                       const SizedBox(width: 4),
                       Text(
@@ -711,9 +774,7 @@ class _TheMindTaskPageState extends State<TheMindTaskPage> {
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: t.deadlineSoon
-                              ? const Color(0xFFED6A2E)
-                              : Colors.grey[500],
+                          color: t.deadlineSoon ? _orange : Colors.grey[500],
                         ),
                       ),
                     ],
@@ -725,6 +786,71 @@ class _TheMindTaskPageState extends State<TheMindTaskPage> {
       ),
     );
   }
+
+  // ── СПИСОК (улучшенный UI) ────────────────────────────────────────────────
+
+  Widget _listView() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.withOpacity(0.1)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // ── Заголовок ──
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8F9FB),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(16),
+              ),
+              border: Border(
+                bottom: BorderSide(color: Colors.grey.withOpacity(0.1)),
+              ),
+            ),
+            child: const Row(
+              children: [
+                SizedBox(width: 34), // под чекбокс
+                SizedBox(width: 14),
+                Expanded(flex: 5, child: _CH('ЗАДАЧА')),
+                Expanded(flex: 2, child: _CH('ТЕГ')),
+                Expanded(flex: 2, child: _CH('СТАТУС')),
+                Expanded(flex: 2, child: _CH('ДЕДЛАЙН')),
+                SizedBox(width: 40),
+              ],
+            ),
+          ),
+
+          // ── Строки ──
+          Expanded(
+            child: ListView.separated(
+              itemCount: _tasks.length,
+              separatorBuilder: (_, __) =>
+                  Divider(color: Colors.grey.withOpacity(0.07), height: 1),
+              itemBuilder: (_, i) {
+                final t = _tasks[i];
+                return ListRow(
+                  task: t,
+                  onStatusTap: (pos) => _showStatusMenu(context, t, pos),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Хелперы ───────────────────────────────────────────────────────────────
 
   Widget _tagChip(String tag, Color color) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
@@ -743,31 +869,6 @@ class _TheMindTaskPageState extends State<TheMindTaskPage> {
     ),
   );
 
-  Widget _statusChip(TaskStatus s) {
-    final labels = ['Нужно сделать', 'В работе', 'На проверке', 'Выполнено'];
-    final colors = [
-      const Color(0xFF6B7FD4),
-      const Color(0xFFFF9800),
-      const Color(0xFF9B59B6),
-      const Color(0xFF2ECC8A),
-    ];
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-      decoration: BoxDecoration(
-        color: colors[s.index].withOpacity(0.1),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Text(
-        labels[s.index],
-        style: TextStyle(
-          fontSize: 10,
-          fontWeight: FontWeight.w800,
-          color: colors[s.index],
-        ),
-      ),
-    );
-  }
-
   Widget _viewBtn(IconData icon, String label, String mode) {
     final active = _view == mode;
     return GestureDetector(
@@ -777,25 +878,21 @@ class _TheMindTaskPageState extends State<TheMindTaskPage> {
         decoration: BoxDecoration(
           border: Border(
             bottom: BorderSide(
-              color: active ? const Color(0xFFED6A2E) : Colors.transparent,
+              color: active ? _orange : Colors.transparent,
               width: 2,
             ),
           ),
         ),
         child: Row(
           children: [
-            Icon(
-              icon,
-              size: 16,
-              color: active ? const Color(0xFFED6A2E) : Colors.grey[500],
-            ),
+            Icon(icon, size: 16, color: active ? _orange : Colors.grey[500]),
             const SizedBox(width: 6),
             Text(
               label,
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: active ? FontWeight.w700 : FontWeight.w500,
-                color: active ? const Color(0xFFED6A2E) : Colors.grey[600],
+                color: active ? _orange : Colors.grey[600],
               ),
             ),
           ],
@@ -810,9 +907,7 @@ class _TheMindTaskPageState extends State<TheMindTaskPage> {
     decoration: BoxDecoration(
       color: Colors.white,
       borderRadius: BorderRadius.circular(10),
-      boxShadow: [
-        BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 6),
-      ],
+      border: Border.all(color: Colors.grey.withOpacity(0.15)),
     ),
     child: Icon(icon, size: 18, color: Colors.grey[600]),
   );
@@ -820,50 +915,64 @@ class _TheMindTaskPageState extends State<TheMindTaskPage> {
   Widget _dLabel(String t) => Text(
     t,
     style: const TextStyle(
-      fontSize: 12,
-      fontWeight: FontWeight.w600,
-      color: Color(0xFF1A2233),
+      fontSize: 10,
+      fontWeight: FontWeight.w700,
+      color: _grey,
+      letterSpacing: 0.8,
     ),
   );
 
-  Widget _dField(TextEditingController c, String hint) => Container(
-    height: 44,
-    decoration: BoxDecoration(
-      color: const Color(0xFFF8F9FB),
-      borderRadius: BorderRadius.circular(10),
-      border: Border.all(color: Colors.grey.withOpacity(0.15)),
-    ),
-    child: TextField(
-      controller: c,
-      style: const TextStyle(fontSize: 13),
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: TextStyle(color: Colors.grey[400], fontSize: 13),
-        border: InputBorder.none,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 12,
-          vertical: 12,
+  Widget _dField(TextEditingController c, String hint, IconData icon) =>
+      TextFormField(
+        controller: c,
+        style: const TextStyle(fontSize: 13, color: _text),
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: const TextStyle(fontSize: 13, color: _grey),
+          prefixIcon: Icon(icon, size: 17, color: _grey),
+          filled: true,
+          fillColor: const Color(0xFFF7F8FA),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Color(0xFFE8EAF0)),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Color(0xFFE8EAF0)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: _orange, width: 1.5),
+          ),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 14,
+            vertical: 13,
+          ),
         ),
-      ),
-    ),
-  );
+      );
 
-  Widget _dArea(TextEditingController c) => Container(
-    decoration: BoxDecoration(
-      color: const Color(0xFFF8F9FB),
-      borderRadius: BorderRadius.circular(10),
-      border: Border.all(color: Colors.grey.withOpacity(0.15)),
-    ),
-    child: TextField(
-      controller: c,
-      maxLines: 3,
-      style: const TextStyle(fontSize: 13),
-      decoration: InputDecoration(
-        hintText: 'Описание задачи...',
-        hintStyle: TextStyle(color: Colors.grey[400], fontSize: 13),
-        border: InputBorder.none,
-        contentPadding: const EdgeInsets.all(12),
+  Widget _dArea(TextEditingController c) => TextFormField(
+    controller: c,
+    maxLines: 3,
+    style: const TextStyle(fontSize: 13, color: _text),
+    decoration: InputDecoration(
+      hintText: 'Описание задачи...',
+      hintStyle: const TextStyle(fontSize: 13, color: _grey),
+      filled: true,
+      fillColor: const Color(0xFFF7F8FA),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFFE8EAF0)),
       ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFFE8EAF0)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: _orange, width: 1.5),
+      ),
+      contentPadding: const EdgeInsets.all(14),
     ),
   );
 
@@ -871,44 +980,178 @@ class _TheMindTaskPageState extends State<TheMindTaskPage> {
     List<String> items,
     String value,
     ValueChanged<String?> on,
-  ) => Container(
-    height: 44,
-    padding: const EdgeInsets.symmetric(horizontal: 12),
-    decoration: BoxDecoration(
-      color: const Color(0xFFF8F9FB),
-      borderRadius: BorderRadius.circular(10),
-      border: Border.all(color: Colors.grey.withOpacity(0.15)),
-    ),
-    child: DropdownButtonHideUnderline(
-      child: DropdownButton<String>(
-        value: value,
-        isExpanded: true,
-        icon: Icon(
-          Icons.keyboard_arrow_down,
-          size: 18,
-          color: Colors.grey[500],
-        ),
-        style: const TextStyle(fontSize: 13, color: Color(0xFF1A2233)),
-        items: items
-            .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-            .toList(),
-        onChanged: on,
+  ) => DropdownButtonFormField<String>(
+    value: value,
+    style: const TextStyle(fontSize: 13, color: _text),
+    decoration: InputDecoration(
+      filled: true,
+      fillColor: const Color(0xFFF7F8FA),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFFE8EAF0)),
       ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFFE8EAF0)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: _orange, width: 1.5),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
     ),
+    icon: const Icon(Icons.keyboard_arrow_down, size: 18, color: _grey),
+    items: items
+        .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+        .toList(),
+    onChanged: on,
   );
+}
+
+// ─── Элемент меню статусов ────────────────────────────────────────────────────
+
+class _StatusMenuItem extends StatefulWidget {
+  final String label;
+  final Color color;
+  final bool isActive;
+
+  const _StatusMenuItem({
+    required this.label,
+    required this.color,
+    required this.isActive,
+  });
+
+  @override
+  State<_StatusMenuItem> createState() => _StatusMenuItemState();
+}
+
+class _StatusMenuItemState extends State<_StatusMenuItem> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onHover: (_) {
+        if (!_hovered) setState(() => _hovered = true);
+      },
+      onExit: (_) {
+        if (mounted) setState(() => _hovered = false);
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 80),
+        color: _hovered ? const Color(0xFFFFFAF8) : const Color(0x00FFFAF8),
+
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
+        child: Row(
+          children: [
+            Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(
+                color: widget.color,
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                widget.label,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: widget.isActive
+                      ? FontWeight.w700
+                      : FontWeight.normal,
+                  color: _hovered || widget.isActive
+                      ? widget.color
+                      : const Color(0xFF1A1F36),
+                ),
+              ),
+            ),
+            if (widget.isActive)
+              Icon(Icons.check, size: 14, color: widget.color),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Кнопка создать ───────────────────────────────────────────────────────────
+
+class _CreateButton extends StatefulWidget {
+  final VoidCallback onTap;
+  const _CreateButton({required this.onTap});
+
+  @override
+  State<_CreateButton> createState() => _CreateButtonState();
+}
+
+class _CreateButtonState extends State<_CreateButton> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onHover: (_) {
+        if (!_hovered) setState(() => _hovered = true);
+      },
+      onExit: (_) {
+        if (mounted) setState(() => _hovered = false);
+      },
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          height: 42,
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          decoration: BoxDecoration(
+            color: _hovered ? _orange.withOpacity(0.9) : _orange,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: _orange.withOpacity(_hovered ? 0.4 : 0.25),
+                blurRadius: _hovered ? 14 : 8,
+                offset: const Offset(0, 3),
+              ),
+            ],
+          ),
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.add, size: 17, color: Colors.white),
+              SizedBox(width: 6),
+              Text(
+                'Создать задачу',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _CH extends StatelessWidget {
   final String text;
   const _CH(this.text);
+
   @override
-  Widget build(BuildContext context) => Text(
-    text,
-    style: TextStyle(
-      fontSize: 10,
-      fontWeight: FontWeight.w700,
-      color: Colors.grey[400],
-      letterSpacing: 0.5,
-    ),
-  );
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: const TextStyle(
+        fontSize: 11,
+        fontWeight: FontWeight.w700,
+        color: Color(0xFF8A9BB8),
+        letterSpacing: 0.3,
+      ),
+    );
+  }
 }

@@ -4,7 +4,10 @@ import 'package:srm/src/the_mind/the_mind_group/data/models/group_model.dart';
 import 'package:srm/src/the_mind/the_mind_group/presentation/cubit/group/group_cubit.dart';
 import 'package:srm/src/the_mind/the_mind_group/presentation/cubit/group/group_state.dart';
 import 'package:srm/src/the_mind/the_mind_students/data/datasources/student_api_service.dart';
+import 'package:srm/src/the_mind/the_mind_students/data/model/students/student_model.dart';
 import 'package:srm/src/the_mind/the_mind_students/data/model/students/student_record_model.dart';
+import 'package:srm/src/the_mind/the_mind_students/presentation/student/cubit/student/student_cubit.dart';
+import 'package:srm/src/the_mind/the_mind_students/presentation/student/cubit/student/student_state.dart';
 
 class GroupDetails extends StatefulWidget {
   final int groupId;
@@ -191,6 +194,172 @@ class _GroupDetailsState extends State<GroupDetails> {
     );
   }
 
+  // ── Диалог добавления студента из списка ────────────────────────
+  void _openAddStudentDialog() {
+    final studentState = context.read<StudentCubit>().state;
+    final allStudents = studentState is StudentLoaded ? studentState.students : <StudentModel>[];
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        String search = '';
+        bool adding = false;
+
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            final filtered = allStudents.where((s) {
+              final q = search.toLowerCase();
+              final name = '${s.firstName ?? ''} ${s.lastName ?? ''}'.toLowerCase();
+              final phone = (s.phone ?? '').toLowerCase();
+              return q.isEmpty || name.contains(q) || phone.contains(q);
+            }).toList();
+
+            return Dialog(
+              backgroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              insetPadding: const EdgeInsets.symmetric(horizontal: 32, vertical: 40),
+              child: SizedBox(
+                width: 480,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Header
+                    Container(
+                      padding: const EdgeInsets.fromLTRB(24, 20, 16, 16),
+                      decoration: BoxDecoration(
+                        border: Border(bottom: BorderSide(color: Colors.grey.withOpacity(0.12))),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 38,
+                            height: 38,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFED6A2E).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Icon(Icons.person_add_outlined, color: Color(0xFFED6A2E), size: 18),
+                          ),
+                          const SizedBox(width: 12),
+                          const Text(
+                            'Добавить студента в группу',
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Color(0xFF1A1F36)),
+                          ),
+                          const Spacer(),
+                          IconButton(
+                            onPressed: () => Navigator.pop(dialogContext),
+                            icon: Icon(Icons.close, color: Colors.grey[400], size: 20),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Search
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
+                      child: TextField(
+                        autofocus: true,
+                        onChanged: (v) => setDialogState(() => search = v),
+                        style: const TextStyle(fontSize: 13),
+                        decoration: InputDecoration(
+                          hintText: 'Поиск по имени или телефону...',
+                          hintStyle: TextStyle(fontSize: 13, color: Colors.grey[400]),
+                          prefixIcon: Icon(Icons.search, size: 18, color: Colors.grey[400]),
+                          contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: Colors.grey.withOpacity(0.2)),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: Colors.grey.withOpacity(0.2)),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: Color(0xFFED6A2E)),
+                          ),
+                        ),
+                      ),
+                    ),
+                    // List
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxHeight: 360),
+                      child: filtered.isEmpty
+                          ? Padding(
+                              padding: const EdgeInsets.all(32),
+                              child: Text('Студенты не найдены', style: TextStyle(color: Colors.grey[400])),
+                            )
+                          : ListView.separated(
+                              shrinkWrap: true,
+                              padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
+                              itemCount: filtered.length,
+                              separatorBuilder: (_, __) => Divider(color: Colors.grey.withOpacity(0.08), height: 1),
+                              itemBuilder: (_, i) {
+                                final s = filtered[i];
+                                final name = '${s.lastName ?? ''} ${s.firstName ?? ''}'.trim();
+                                return ListTile(
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                                  leading: CircleAvatar(
+                                    radius: 18,
+                                    backgroundColor: const Color(0xFFED6A2E).withOpacity(0.12),
+                                    child: Text(
+                                      name.isNotEmpty ? name[0].toUpperCase() : '?',
+                                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFFED6A2E)),
+                                    ),
+                                  ),
+                                  title: Text(name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF1A1F36))),
+                                  subtitle: Text(s.phone ?? '—', style: TextStyle(fontSize: 12, color: Colors.grey[500])),
+                                  trailing: adding
+                                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFFED6A2E)))
+                                      : const Icon(Icons.add_circle_outline, color: Color(0xFFED6A2E), size: 20),
+                                  onTap: adding
+                                      ? null
+                                      : () async {
+                                          if (s.id == null) return;
+                                          setDialogState(() => adding = true);
+                                          try {
+                                            await StudentRepository().assignGroupToStudent(
+                                              studentId: s.id!,
+                                              groupId: widget.groupId,
+                                            );
+                                            if (!dialogContext.mounted) return;
+                                            Navigator.pop(dialogContext);
+                                            if (mounted) {
+                                              context.read<GroupCubit>().getGroupDetails(widget.groupId);
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                SnackBar(
+                                                  content: Text('✅ $name добавлен в группу'),
+                                                  backgroundColor: const Color(0xFF2ECC8A),
+                                                  behavior: SnackBarBehavior.floating,
+                                                ),
+                                              );
+                                            }
+                                          } catch (e) {
+                                            setDialogState(() => adding = false);
+                                            if (dialogContext.mounted) {
+                                              ScaffoldMessenger.of(dialogContext).showSnackBar(
+                                                SnackBar(
+                                                  content: Text(e.toString()),
+                                                  backgroundColor: Colors.redAccent,
+                                                  behavior: SnackBarBehavior.floating,
+                                                ),
+                                              );
+                                            }
+                                          }
+                                        },
+                                );
+                              },
+                            ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   // ── Шапка — оригинальный UI, данные из API ──────────────────────
   Widget _buildHeader(GroupModel group) {
     return Row(
@@ -245,7 +414,7 @@ class _GroupDetailsState extends State<GroupDetails> {
         ),
         const SizedBox(width: 10),
         ElevatedButton.icon(
-          onPressed: () {},
+          onPressed: _openAddStudentDialog,
           icon: const Icon(Icons.add, size: 15, color: Colors.white),
           label: const Text(
             'Добавить студента',
@@ -794,9 +963,10 @@ class _GroupDetailsState extends State<GroupDetails> {
       height: 34,
       child: TextField(
         controller: _hwControllers[studentId],
+        keyboardType: TextInputType.number,
         style: const TextStyle(fontSize: 13),
         decoration: InputDecoration(
-          hintText: 'Нет',
+          hintText: '1–10',
           hintStyle: TextStyle(fontSize: 13, color: Colors.grey[400]),
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 10,

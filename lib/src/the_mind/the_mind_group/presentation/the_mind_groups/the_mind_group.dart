@@ -159,20 +159,6 @@ class _TheMindGroupState extends State<TheMindGroup> {
                         _currentPage = 1;
                       }),
                     ),
-
-                    const SizedBox(width: 12),
-
-                    // Доп. фильтры
-                    Container(
-                      width: 42,
-                      height: 42,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey.withOpacity(0.2)),
-                      ),
-                      child: Icon(Icons.tune, size: 18, color: Colors.grey[600]),
-                    ),
                   ],
                 );
               },

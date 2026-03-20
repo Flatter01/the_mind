@@ -207,14 +207,19 @@ class StudentRepository {
     required List<StudentRecordModel> records,
   }) async {
     try {
-      await _dio.post(
-        "/teacher/groups/$groupId/journal/",
-        data: {
+      for (final record in records) {
+        final body = {
           "lesson_date": lessonDate,
-          "teacher_id": teacherId,
-          "student_records": records.map((r) => r.toJson()).toList(),
-        },
-      );
+          "class_score": record.classScore,
+          "homework_score": record.homeworkScore,
+          "attendance": record.attendance,
+          "absence_reason": record.absenceReason,
+        };
+        await _dio.patch(
+          "/student/ui/${record.studentId}/grades/",
+          data: body,
+        );
+      }
     } on DioException catch (e) {
       throw Exception(
         "Ошибка сохранения журнала: ${e.response?.data ?? e.message}",

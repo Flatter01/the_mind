@@ -110,7 +110,7 @@ class LidApiService {
       print(body);
       print('========================');
 
-      final response = await _dio.put('/student/leads/$id/', data: body);
+      final response = await _dio.patch('/student/leads/$id/', data: body);
       return LidModel.fromJson(response.data as Map<String, dynamic>);
     } on DioException catch (e) {
       print('=== UPDATE LEAD ERROR ===');

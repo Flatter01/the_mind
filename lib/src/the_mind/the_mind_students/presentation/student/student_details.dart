@@ -26,6 +26,7 @@ class StudentDetailsPage extends StatefulWidget {
 }
 
 class _StudentDetailsPageState extends State<StudentDetailsPage> {
+  late StudentModel _student;
   int _discountAmount = 0;
   bool _editingDiscount = false;
   late TextEditingController _discountCtrl;
@@ -50,9 +51,10 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
   @override
   void initState() {
     super.initState();
+    _student = widget.student;
     _discountCtrl = TextEditingController(text: _discountAmount.toString());
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final s = widget.student;
+      final s = _student;
       context.read<JournalCubit>().loadJournal(
             groupId: int.tryParse(s.groupId ?? '') ?? 0,
             lessonDate: DateTime.now().toIso8601String().substring(0, 10),
@@ -69,7 +71,7 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
 
   int get _rawBalance {
     final raw =
-        widget.student.balance.replaceAll(RegExp(r'[^0-9\-]'), '');
+        _student.balance.replaceAll(RegExp(r'[^0-9\-]'), '');
     return int.tryParse(raw) ?? 0;
   }
 
@@ -477,6 +479,20 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
                                       if (!dialogContext.mounted) return;
                                       Navigator.pop(dialogContext);
 
+                                      // Обновляем локальный стейт страницы
+                                      if (mounted) {
+                                        setState(() {
+                                          _student = _student.copyWith(
+                                            firstName: firstNameCtrl.text.trim(),
+                                            lastName: lastNameCtrl.text.trim(),
+                                            phone: phoneCtrl.text.trim(),
+                                            status: status,
+                                            groupId: selectedGroupId,
+                                            groupName: selectedGroupName,
+                                          );
+                                        });
+                                      }
+
                                       // Обновляем список
                                       if (context.mounted) {
                                         context
@@ -674,7 +690,7 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final s = widget.student;
+    final s = _student;
     final isDebtor = _balanceAfterDiscount < 0;
 
     return BlocProvider(
@@ -1116,22 +1132,6 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
                                         .firstOrNull
                                     : null;
 
-                                double avgHw = 0, avgClass = 0;
-                                int countHw = 0, countClass = 0;
-                                if (journalState is JournalLoaded) {
-                                  for (final r in journalState.records) {
-                                    if (r.homeworkScore != null) {
-                                      avgHw += r.homeworkScore!;
-                                      countHw++;
-                                    }
-                                    if (r.classScore != null) {
-                                      avgClass += r.classScore!;
-                                      countClass++;
-                                    }
-                                  }
-                                  if (countHw > 0) avgHw /= countHw;
-                                  if (countClass > 0) avgClass /= countClass;
-                                }
 
                                 final grades = record != null
                                     ? <Map<String, dynamic>>[
@@ -1203,28 +1203,25 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
                                           Expanded(
                                             child: ScoreMetric(
                                               label: 'ДОМАШНИЕ\nЗАДАНИЯ',
-                                              score: countHw > 0 ? avgHw : 0,
+                                              score: record?.homeworkScore
+                                                      ?.toDouble() ??
+                                                  0,
                                             ),
                                           ),
                                           Expanded(
                                             child: ScoreMetric(
                                               label: 'ТЕСТЫ И ЭКЗАМЕНЫ',
-                                              score: countClass > 0
-                                                  ? avgClass
-                                                  : 0,
+                                              score: record?.classScore
+                                                      ?.toDouble() ??
+                                                  0,
                                             ),
                                           ),
                                           Expanded(
                                             child: ScoreMetric(
                                               label: 'АКТИВНОСТЬ',
-                                              score: journalState
-                                                      is JournalLoaded
-                                                  ? journalState.records
-                                                      .where((r) =>
-                                                          r.attendance ==
-                                                          'present')
-                                                      .length
-                                                      .toDouble()
+                                              score: record?.attendance ==
+                                                      'present'
+                                                  ? 1.0
                                                   : 0,
                                             ),
                                           ),

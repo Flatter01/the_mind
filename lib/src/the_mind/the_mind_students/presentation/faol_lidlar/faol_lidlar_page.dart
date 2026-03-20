@@ -86,7 +86,8 @@ class _FaolLidlarViewState extends State<_FaolLidlarView> {
     showDialog(
       context: context,
       builder: (dialogCtx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Сменить статус'),
         content: SizedBox(
           width: 320,
@@ -106,10 +107,10 @@ class _FaolLidlarViewState extends State<_FaolLidlarView> {
                 onTap: () {
                   if (lead.id != null) {
                     context.read<LidCubit>().changeStatus(
-                      id: lead.id!,
-                      statusDisplay: status,
-                      onSuccess: () => Navigator.pop(dialogCtx),
-                    );
+                          id: lead.id!,
+                          statusDisplay: status,
+                          onSuccess: () => Navigator.pop(dialogCtx),
+                        );
                   }
                 },
               );
@@ -129,15 +130,18 @@ class _FaolLidlarViewState extends State<_FaolLidlarView> {
     String? gender = lead?.gender;
     String status = lead?.status ?? 'lead';
 
-    final sources = [
-      'instagram',
-      'telegram',
-      'call',
-      'friends',
-      'ads',
-      'other',
-    ];
-    final genders = ['male', 'female'];
+    final sources = {
+      'instagram': 'Instagram',
+      'telegram': 'Telegram',
+      'call': 'Звонок',
+      'friends': 'Друзья',
+      'ads': 'Реклама',
+      'other': 'Другое',
+    };
+    final genders = {
+      'male': 'Мужской',
+      'female': 'Женский',
+    };
     final statuses = {
       'lead': 'Лиды',
       'waiting': 'В ожидании',
@@ -167,7 +171,7 @@ class _FaolLidlarViewState extends State<_FaolLidlarView> {
                 return Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Header
+                    // ── Header ──
                     Container(
                       padding: const EdgeInsets.fromLTRB(24, 20, 16, 18),
                       decoration: BoxDecoration(
@@ -194,7 +198,9 @@ class _FaolLidlarViewState extends State<_FaolLidlarView> {
                           ),
                           const SizedBox(width: 12),
                           Text(
-                            lead == null ? 'Новый лид' : 'Редактировать лид',
+                            lead == null
+                                ? 'Новый лид'
+                                : 'Редактировать лид',
                             style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w700,
@@ -214,13 +220,14 @@ class _FaolLidlarViewState extends State<_FaolLidlarView> {
                       ),
                     ),
 
-                    // Body
+                    // ── Body ──
                     Flexible(
                       child: SingleChildScrollView(
                         padding: const EdgeInsets.all(24),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            // Имя + Телефон
                             Row(
                               children: [
                                 Expanded(
@@ -242,43 +249,62 @@ class _FaolLidlarViewState extends State<_FaolLidlarView> {
                               ],
                             ),
                             const SizedBox(height: 14),
+
+                            // Источник + Пол
                             Row(
                               children: [
                                 Expanded(
-                                  child: _dialogDropdown(
-                                    label: 'Источник',
-                                    value: source,
-                                    items: sources,
-                                    onChanged: (v) =>
-                                        setDialogState(() => source = v),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      _fieldLabel('Источник'),
+                                      const SizedBox(height: 6),
+                                      DialogDropdown(
+                                        hint: 'Выберите источник',
+                                        value: source,
+                                        items: sources,
+                                        onChanged: (v) => setDialogState(
+                                            () => source = v),
+                                      ),
+                                    ],
                                   ),
                                 ),
                                 const SizedBox(width: 14),
                                 Expanded(
-                                  child: _dialogDropdown(
-                                    label: 'Пол',
-                                    value: gender,
-                                    items: genders,
-                                    labels: {
-                                      'male': 'Мужской',
-                                      'female': 'Женский',
-                                    },
-                                    onChanged: (v) =>
-                                        setDialogState(() => gender = v),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      _fieldLabel('Пол'),
+                                      const SizedBox(height: 6),
+                                      DialogDropdown(
+                                        hint: 'Выберите пол',
+                                        value: gender,
+                                        items: genders,
+                                        onChanged: (v) => setDialogState(
+                                            () => gender = v),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ],
                             ),
                             const SizedBox(height: 14),
-                            _dialogDropdown(
-                              label: 'Статус',
+
+                            // Статус
+                            _fieldLabel('Статус'),
+                            const SizedBox(height: 6),
+                            DialogDropdown(
+                              hint: 'Выберите статус',
                               value: status,
-                              items: statuses.keys.toList(),
-                              labels: statuses,
-                              onChanged: (v) =>
-                                  setDialogState(() => status = v ?? 'new'),
+                              items: statuses,
+                              onChanged: (v) => setDialogState(
+                                  () => status = v ?? 'lead'),
                             ),
                             const SizedBox(height: 14),
+
+                            // Комментарий
                             TextFormField(
                               controller: commentCtrl,
                               maxLines: 3,
@@ -320,29 +346,33 @@ class _FaolLidlarViewState extends State<_FaolLidlarView> {
                       ),
                     ),
 
-                    // Footer
+                    // ── Footer ──
                     Container(
-                      padding: const EdgeInsets.fromLTRB(24, 14, 24, 20),
+                      padding:
+                          const EdgeInsets.fromLTRB(24, 14, 24, 20),
                       decoration: BoxDecoration(
                         border: Border(
-                          top: BorderSide(color: Colors.grey.withOpacity(0.12)),
+                          top: BorderSide(
+                              color: Colors.grey.withOpacity(0.12)),
                         ),
                       ),
                       child: Row(
                         children: [
                           const Spacer(),
                           TextButton(
-                            onPressed: () => Navigator.pop(dialogContext),
+                            onPressed: () =>
+                                Navigator.pop(dialogContext),
                             child: Text(
                               'Отмена',
-                              style: TextStyle(color: Colors.grey[500]),
+                              style:
+                                  TextStyle(color: Colors.grey[500]),
                             ),
                           ),
                           const SizedBox(width: 10),
                           BlocBuilder<LidCubit, LidState>(
                             builder: (context, state) {
-                              final isLoading =
-                                  state is LidCreating || state is LidUpdating;
+                              final isLoading = state is LidCreating ||
+                                  state is LidUpdating;
                               return GestureDetector(
                                 onTap: isLoading
                                     ? null
@@ -351,12 +381,15 @@ class _FaolLidlarViewState extends State<_FaolLidlarView> {
                                           await context
                                               .read<LidCubit>()
                                               .createLead(
-                                                firstName: firstNameCtrl.text
+                                                firstName: firstNameCtrl
+                                                    .text
                                                     .trim(),
-                                                phone: phoneCtrl.text.trim(),
+                                                phone: phoneCtrl.text
+                                                    .trim(),
                                                 status: status,
                                                 source: source,
-                                                comment: commentCtrl.text
+                                                comment: commentCtrl
+                                                    .text
                                                     .trim(),
                                               );
                                         } else {
@@ -364,24 +397,30 @@ class _FaolLidlarViewState extends State<_FaolLidlarView> {
                                               .read<LidCubit>()
                                               .updateLead(
                                                 id: lead.id!,
-                                                firstName: firstNameCtrl.text
+                                                firstName: firstNameCtrl
+                                                    .text
                                                     .trim(),
-                                                phone: phoneCtrl.text.trim(),
+                                                phone: phoneCtrl.text
+                                                    .trim(),
                                                 source: source,
                                                 gender: gender,
-                                                comment: commentCtrl.text
+                                                comment: commentCtrl
+                                                    .text
                                                     .trim(),
-                                                statusDisplay: statuses[status],
+                                                statusDisplay:
+                                                    statuses[status],
                                               );
                                         }
-                                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                                        WidgetsBinding.instance
+                                            .addPostFrameCallback((_) {
                                           if (dialogContext.mounted) {
                                             Navigator.pop(dialogContext);
                                           }
                                         });
                                       },
                                 child: AnimatedContainer(
-                                  duration: const Duration(milliseconds: 150),
+                                  duration:
+                                      const Duration(milliseconds: 150),
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 24,
                                     vertical: 12,
@@ -390,10 +429,12 @@ class _FaolLidlarViewState extends State<_FaolLidlarView> {
                                     color: isLoading
                                         ? _orange.withOpacity(0.6)
                                         : _orange,
-                                    borderRadius: BorderRadius.circular(10),
+                                    borderRadius:
+                                        BorderRadius.circular(10),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: _orange.withOpacity(0.3),
+                                        color:
+                                            _orange.withOpacity(0.3),
                                         blurRadius: 10,
                                         offset: const Offset(0, 3),
                                       ),
@@ -403,7 +444,8 @@ class _FaolLidlarViewState extends State<_FaolLidlarView> {
                                       ? const SizedBox(
                                           width: 16,
                                           height: 16,
-                                          child: CircularProgressIndicator(
+                                          child:
+                                              CircularProgressIndicator(
                                             strokeWidth: 2,
                                             color: Colors.white,
                                           ),
@@ -443,7 +485,6 @@ class _FaolLidlarViewState extends State<_FaolLidlarView> {
       body: BlocListener<LidCubit, LidState>(
         listener: (context, state) {
           if (state is LidError) {
-            print("errrorrr ${state.message}");
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(state.message),
@@ -497,22 +538,23 @@ class _FaolLidlarViewState extends State<_FaolLidlarView> {
                             width: 1.5,
                           ),
                         ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          vertical: 12,
-                        ),
+                        contentPadding:
+                            const EdgeInsets.symmetric(vertical: 12),
                       ),
                     ),
                   ),
                   const Spacer(),
                   IconButton(
-                    onPressed: () => context.read<LidCubit>().getLeads(),
+                    onPressed: () =>
+                        context.read<LidCubit>().getLeads(),
                     icon: const Icon(Icons.refresh, color: _orange),
                     tooltip: 'Обновить',
                   ),
                   const SizedBox(width: 8),
                   ElevatedButton.icon(
                     onPressed: () => _openEditDialog(),
-                    icon: const Icon(Icons.add, color: Colors.white, size: 17),
+                    icon: const Icon(Icons.add,
+                        color: Colors.white, size: 17),
                     label: const Text(
                       'Добавить лид',
                       style: TextStyle(
@@ -538,23 +580,23 @@ class _FaolLidlarViewState extends State<_FaolLidlarView> {
 
               const SizedBox(height: 20),
 
-              // Канбан
               Expanded(
                 child: BlocBuilder<LidCubit, LidState>(
                   builder: (context, state) {
                     if (state is LidLoading) {
                       return const Center(
-                        child: CircularProgressIndicator(color: _orange),
+                        child:
+                            CircularProgressIndicator(color: _orange),
                       );
                     }
 
-                    final leads = state is LidLoaded
-                        ? state.leads
-                        : <LidModel>[];
+                    final leads =
+                        state is LidLoaded ? state.leads : <LidModel>[];
                     final grouped = _groupByStatus(leads);
 
                     return ScrollConfiguration(
-                      behavior: const MaterialScrollBehavior().copyWith(
+                      behavior:
+                          const MaterialScrollBehavior().copyWith(
                         dragDevices: {
                           PointerDeviceKind.touch,
                           PointerDeviceKind.mouse,
@@ -570,7 +612,8 @@ class _FaolLidlarViewState extends State<_FaolLidlarView> {
                             final data = _filter(entry.value);
 
                             return Padding(
-                              padding: const EdgeInsets.only(right: 14),
+                              padding:
+                                  const EdgeInsets.only(right: 14),
                               child: _KanbanColumn(
                                 status: status,
                                 data: data,
@@ -580,9 +623,9 @@ class _FaolLidlarViewState extends State<_FaolLidlarView> {
                                     _openEditDialog(lead: lead),
                                 onDeleteTap: (lead) {
                                   if (lead.id != null) {
-                                    context.read<LidCubit>().deleteLead(
-                                      lead.id!,
-                                    );
+                                    context
+                                        .read<LidCubit>()
+                                        .deleteLead(lead.id!);
                                   }
                                 },
                               ),
@@ -597,6 +640,17 @@ class _FaolLidlarViewState extends State<_FaolLidlarView> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _fieldLabel(String text) {
+    return Text(
+      text,
+      style: TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.w600,
+        color: Colors.grey[500],
       ),
     );
   }
@@ -619,11 +673,13 @@ class _FaolLidlarViewState extends State<_FaolLidlarView> {
         fillColor: const Color(0xFFF7F8FA),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: Colors.grey.withOpacity(0.2)),
+          borderSide:
+              BorderSide(color: Colors.grey.withOpacity(0.2)),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: Colors.grey.withOpacity(0.2)),
+          borderSide:
+              BorderSide(color: Colors.grey.withOpacity(0.2)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
@@ -636,43 +692,261 @@ class _FaolLidlarViewState extends State<_FaolLidlarView> {
       ),
     );
   }
+}
 
-  Widget _dialogDropdown({
-    required String label,
-    required String? value,
-    required List<String> items,
-    Map<String, String>? labels,
-    required ValueChanged<String?> onChanged,
-  }) {
-    return DropdownButtonFormField<String>(
-      value: items.contains(value) ? value : null,
-      style: const TextStyle(fontSize: 13, color: Color(0xFF1A2233)),
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: TextStyle(fontSize: 12, color: Colors.grey[500]),
-        filled: true,
-        fillColor: const Color(0xFFF7F8FA),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: Colors.grey.withOpacity(0.2)),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: Colors.grey.withOpacity(0.2)),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: _orange, width: 1.5),
-        ),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 14,
-          vertical: 12,
+// ─── DialogDropdown ───────────────────────────────────────────────────────────
+
+class DialogDropdown extends StatefulWidget {
+  final String hint;
+  final String? value;
+  final Map<String, String> items;
+  final ValueChanged<String?> onChanged;
+
+  const DialogDropdown({
+    super.key,
+    required this.hint,
+    required this.value,
+    required this.items,
+    required this.onChanged,
+  });
+
+  @override
+  State<DialogDropdown> createState() => _DialogDropdownState();
+}
+
+class _DialogDropdownState extends State<DialogDropdown> {
+  final LayerLink _layerLink = LayerLink();
+  OverlayEntry? _overlayEntry;
+  bool _isOpen = false;
+
+  static const _orange = Color(0xFFED6A2E);
+
+  bool get _isSelected =>
+      widget.value != null && widget.items.containsKey(widget.value);
+
+  void _open() {
+    if (_isOpen) {
+      _close();
+      return;
+    }
+    _overlayEntry = _buildOverlay();
+    Overlay.of(context).insert(_overlayEntry!);
+    setState(() => _isOpen = true);
+  }
+
+  void _close() {
+    _overlayEntry?.remove();
+    _overlayEntry = null;
+    if (mounted) setState(() => _isOpen = false);
+  }
+
+  OverlayEntry _buildOverlay() {
+    final renderBox = context.findRenderObject() as RenderBox;
+    final size = renderBox.size;
+
+    return OverlayEntry(
+      builder: (_) => Stack(
+        children: [
+          Positioned.fill(
+            child: GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onTap: _close,
+              child: const SizedBox.expand(),
+            ),
+          ),
+          CompositedTransformFollower(
+            link: _layerLink,
+            showWhenUnlinked: false,
+            targetAnchor: Alignment.bottomLeft,
+            followerAnchor: Alignment.topLeft,
+            offset: const Offset(0, 6),
+            child: Material(
+              elevation: 8,
+              shadowColor: Colors.black.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(12),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minWidth: size.width,
+                  maxWidth: size.width,
+                  maxHeight: 220,
+                ),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                        color: Colors.grey.withOpacity(0.15)),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: ListView(
+                      padding:
+                          const EdgeInsets.symmetric(vertical: 6),
+                      shrinkWrap: true,
+                      children: widget.items.entries
+                          .map(
+                            (e) => _DialogDropdownItem(
+                              label: e.value,
+                              isSelected: e.key == widget.value,
+                              onTap: () {
+                                widget.onChanged(e.key);
+                                _close();
+                              },
+                            ),
+                          )
+                          .toList(),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _close();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final label =
+        _isSelected ? widget.items[widget.value]! : widget.hint;
+
+    return CompositedTransformTarget(
+      link: _layerLink,
+      child: GestureDetector(
+        onTap: _open,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          height: 46,
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          decoration: BoxDecoration(
+            color: _isSelected
+                ? _orange.withOpacity(0.05)
+                : const Color(0xFFF7F8FA),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: _isSelected
+                  ? _orange
+                  : _isOpen
+                      ? Colors.grey.withOpacity(0.4)
+                      : Colors.grey.withOpacity(0.2),
+              width: _isSelected ? 1.5 : 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: _isSelected
+                        ? FontWeight.w600
+                        : FontWeight.normal,
+                    color: _isSelected ? _orange : Colors.grey[500],
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 6),
+              if (_isSelected)
+                GestureDetector(
+                  onTap: () {
+                    widget.onChanged(null);
+                    _close();
+                  },
+                  child: const Icon(Icons.close,
+                      size: 14, color: _orange),
+                )
+              else
+                AnimatedRotation(
+                  turns: _isOpen ? 0.5 : 0,
+                  duration: const Duration(milliseconds: 150),
+                  child: Icon(Icons.keyboard_arrow_down,
+                      size: 16, color: Colors.grey[500]),
+                ),
+            ],
+          ),
         ),
       ),
-      items: items
-          .map((e) => DropdownMenuItem(value: e, child: Text(labels?[e] ?? e)))
-          .toList(),
-      onChanged: onChanged,
+    );
+  }
+}
+
+class _DialogDropdownItem extends StatefulWidget {
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _DialogDropdownItem({
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  State<_DialogDropdownItem> createState() => _DialogDropdownItemState();
+}
+
+class _DialogDropdownItemState extends State<_DialogDropdownItem> {
+  bool _hovered = false;
+  static const _orange = Color(0xFFED6A2E);
+
+  @override
+  Widget build(BuildContext context) {
+    final bg = widget.isSelected
+        ? _orange.withOpacity(0.08)
+        : _hovered
+            ? _orange.withOpacity(0.05)
+            : Colors.transparent;
+
+    final textColor = widget.isSelected
+        ? _orange
+        : _hovered
+            ? _orange
+            : Colors.black87;
+
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onHover: (_) {
+        if (!_hovered) setState(() => _hovered = true);
+      },
+      onExit: (_) {
+        if (mounted) setState(() => _hovered = false);
+      },
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 80),
+          color: bg,
+          padding: const EdgeInsets.symmetric(
+              horizontal: 16, vertical: 11),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  widget.label,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: widget.isSelected
+                        ? FontWeight.w600
+                        : FontWeight.normal,
+                    color: textColor,
+                  ),
+                ),
+              ),
+              if (widget.isSelected)
+                const Icon(Icons.check, size: 14, color: _orange),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -700,12 +974,10 @@ class _KanbanColumn extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       width: 290,
-      // ← height: double.infinity убран
       child: Column(
-        mainAxisSize: MainAxisSize.min, // ← колонка по размеру контента
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Заголовок колонки
           Padding(
             padding: const EdgeInsets.only(bottom: 14, left: 2),
             child: Row(
@@ -722,9 +994,7 @@ class _KanbanColumn extends StatelessWidget {
                 const SizedBox(width: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 2,
-                  ),
+                      horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
                     color: titleColor.withOpacity(0.12),
                     borderRadius: BorderRadius.circular(20),
@@ -741,11 +1011,9 @@ class _KanbanColumn extends StatelessWidget {
               ],
             ),
           ),
-
-          // Карточки или пустое состояние
           if (data.isEmpty)
             Container(
-              height: 165, // ← размер как у карточки лида
+              height: 165,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: Colors.white.withOpacity(0.5),
@@ -810,7 +1078,8 @@ class _LidCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
         border: lead.status == 'not_came'
-            ? const Border(left: BorderSide(color: _orange, width: 3))
+            ? const Border(
+                left: BorderSide(color: _orange, width: 3))
             : Border.all(color: Colors.grey.withOpacity(0.12)),
         boxShadow: [
           BoxShadow(
@@ -839,9 +1108,7 @@ class _LidCard extends StatelessWidget {
               if (_isNew)
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 3,
-                  ),
+                      horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
                     color: _orange,
                     borderRadius: BorderRadius.circular(6),
@@ -876,11 +1143,13 @@ class _LidCard extends StatelessWidget {
           if (lead.phone != null)
             Row(
               children: [
-                Icon(Icons.phone_outlined, size: 12, color: Colors.grey[400]),
+                Icon(Icons.phone_outlined,
+                    size: 12, color: Colors.grey[400]),
                 const SizedBox(width: 5),
                 Text(
                   lead.phone!,
-                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  style:
+                      TextStyle(fontSize: 12, color: Colors.grey[600]),
                 ),
               ],
             ),
@@ -889,11 +1158,13 @@ class _LidCard extends StatelessWidget {
             const SizedBox(height: 4),
             Row(
               children: [
-                Icon(Icons.public_outlined, size: 12, color: Colors.grey[400]),
+                Icon(Icons.public_outlined,
+                    size: 12, color: Colors.grey[400]),
                 const SizedBox(width: 5),
                 Text(
                   lead.source!,
-                  style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                  style:
+                      TextStyle(fontSize: 12, color: Colors.grey[500]),
                 ),
               ],
             ),
@@ -903,12 +1174,14 @@ class _LidCard extends StatelessWidget {
             const SizedBox(height: 4),
             Row(
               children: [
-                Icon(Icons.comment_outlined, size: 12, color: Colors.grey[400]),
+                Icon(Icons.comment_outlined,
+                    size: 12, color: Colors.grey[400]),
                 const SizedBox(width: 5),
                 Expanded(
                   child: Text(
                     lead.comment!,
-                    style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+                    style: TextStyle(
+                        fontSize: 11, color: Colors.grey[500]),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -925,9 +1198,7 @@ class _LidCard extends StatelessWidget {
                 onTap: onStatusTap,
                 child: Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 5,
-                  ),
+                      horizontal: 8, vertical: 5),
                   decoration: BoxDecoration(
                     color: _orange.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(6),
@@ -947,21 +1218,17 @@ class _LidCard extends StatelessWidget {
                 onTap: onEditTap,
                 child: Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 5,
-                  ),
+                      horizontal: 8, vertical: 5),
                   decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey.withOpacity(0.25)),
+                    border: Border.all(
+                        color: Colors.grey.withOpacity(0.25)),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(
-                        Icons.edit_outlined,
-                        size: 11,
-                        color: Colors.grey[600],
-                      ),
+                      Icon(Icons.edit_outlined,
+                          size: 11, color: Colors.grey[600]),
                       const SizedBox(width: 4),
                       Text(
                         'Изменить',
@@ -978,11 +1245,8 @@ class _LidCard extends StatelessWidget {
               const Spacer(),
               GestureDetector(
                 onTap: onDeleteTap,
-                child: Icon(
-                  Icons.delete_outline,
-                  size: 16,
-                  color: Colors.grey[300],
-                ),
+                child: Icon(Icons.delete_outline,
+                    size: 16, color: Colors.grey[300]),
               ),
             ],
           ),
