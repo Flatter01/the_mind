@@ -478,9 +478,26 @@ class _TheMindExamsPageState extends State<TheMindExamsPage> {
             else
               const SizedBox(width: 40),
 
-            IconButton(
-              onPressed: () => context.read<ExamCubit>().deleteExam(e.id),
+            PopupMenuButton<String>(
               icon: Icon(Icons.more_vert, size: 18, color: Colors.grey[400]),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              onSelected: (value) {
+                if (value == 'edit') {
+                  showDialog(
+                    context: context,
+                    builder: (_) => BlocProvider.value(
+                      value: context.read<ExamCubit>(),
+                      child: AddExamDialog(exam: e),
+                    ),
+                  );
+                } else if (value == 'delete') {
+                  context.read<ExamCubit>().deleteExam(e.id);
+                }
+              },
+              itemBuilder: (_) => const [
+                PopupMenuItem(value: 'edit', child: Text('Редактировать')),
+                PopupMenuItem(value: 'delete', child: Text('Удалить')),
+              ],
             ),
           ],
         ),

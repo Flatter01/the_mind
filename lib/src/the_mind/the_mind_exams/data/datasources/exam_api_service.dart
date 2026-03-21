@@ -82,6 +82,41 @@ class ExamApiService {
     }
   }
 
+  Future<void> updateExam({
+    required String id,
+    required String title,
+    required String teacher,
+    required int group,
+    required String examDate,
+    required String startTime,
+    required String endTime,
+    required int passScore,
+    required bool isPercentage,
+    required bool isActive,
+  }) async {
+    try {
+      final response = await _dio.patch(
+        "/exam/exams/$id/",
+        data: {
+          "title": title,
+          "group": group,
+          "teacher": teacher,
+          "exam_date": examDate,
+          "start_time": startTime,
+          "end_time": endTime,
+          "pass_score": passScore,
+          "is_percentage": isPercentage,
+          "is_active": isActive,
+        },
+      );
+      if (response.statusCode != 200 && response.statusCode != 204) {
+        throw Exception("Ошибка обновления экзамена");
+      }
+    } on DioException catch (e) {
+      throw Exception("Exam PATCH error: ${e.response?.data ?? e.message}");
+    }
+  }
+
   Future<void> deleteExam(String id) async {
     try {
       final response = await _dio.delete("/exam/exams/$id/");

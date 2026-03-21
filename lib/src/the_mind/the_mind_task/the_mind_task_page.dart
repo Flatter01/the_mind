@@ -153,46 +153,6 @@ class _TheMindTaskPageState extends State<TheMindTaskPage> {
   List<TaskModel> _byStatus(TaskStatus s) =>
       _tasks.where((t) => t.status == s).toList();
 
-  // ── Смена статуса через три точки ────────────────────────────────────────
-  void _showStatusMenu(
-    BuildContext context,
-    TaskModel task,
-    Offset position,
-  ) async {
-    final RenderBox overlay =
-        Overlay.of(context).context.findRenderObject() as RenderBox;
-
-    final selected = await showMenu<TaskStatus>(
-      context: context,
-      position: RelativeRect.fromRect(
-        position & const Size(40, 40),
-        Offset.zero & overlay.size,
-      ),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      elevation: 8,
-      items: TaskStatus.values.map((s) {
-        final isActive = task.status == s;
-        final color = _statusColors[s.index];
-        return PopupMenuItem<TaskStatus>(
-          value: s,
-          padding: EdgeInsets.zero,
-          child: _StatusMenuItem(
-            label: _statusLabels[s.index],
-            color: color,
-            isActive: isActive,
-          ),
-        );
-      }).toList(),
-    );
-
-    if (selected != null) {
-      setState(() {
-        task.status = selected;
-        task.done = selected == TaskStatus.done;
-      });
-    }
-  }
-
   void _showCreateDialog() {
     final titleCtrl = TextEditingController();
     final descCtrl = TextEditingController();
@@ -497,10 +457,6 @@ class _TheMindTaskPageState extends State<TheMindTaskPage> {
                       _viewBtn(Icons.grid_view_rounded, 'Доска', 'board'),
                       const SizedBox(width: 4),
                       _viewBtn(Icons.list_rounded, 'Список', 'list'),
-                      const Spacer(),
-                      _iconBtn(Icons.filter_list_rounded),
-                      const SizedBox(width: 8),
-                      _iconBtn(Icons.sort_rounded),
                     ],
                   ),
                   Divider(color: Colors.grey.withOpacity(0.12), height: 20),
@@ -632,9 +588,28 @@ class _TheMindTaskPageState extends State<TheMindTaskPage> {
               const SizedBox(width: 4),
 
               // ✅ Три точки с меню смены статуса
-              GestureDetector(
-                onTapDown: (details) =>
-                    _showStatusMenu(context, t, details.globalPosition),
+              PopupMenuButton<TaskStatus>(
+                onSelected: (selected) {
+                  setState(() {
+                    t.status = selected;
+                    t.done = selected == TaskStatus.done;
+                  });
+                },
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 8,
+                itemBuilder: (_) => TaskStatus.values.map((s) {
+                  return PopupMenuItem<TaskStatus>(
+                    value: s,
+                    padding: EdgeInsets.zero,
+                    child: _StatusMenuItem(
+                      label: _statusLabels[s.index],
+                      color: _statusColors[s.index],
+                      isActive: t.status == s,
+                    ),
+                  );
+                }).toList(),
                 child: MouseRegion(
                   cursor: SystemMouseCursors.click,
                   child: Container(
@@ -840,7 +815,12 @@ class _TheMindTaskPageState extends State<TheMindTaskPage> {
                 final t = _tasks[i];
                 return ListRow(
                   task: t,
-                  onStatusTap: (pos) => _showStatusMenu(context, t, pos),
+                  onStatusChanged: (selected) {
+                    setState(() {
+                      t.status = selected;
+                      t.done = selected == TaskStatus.done;
+                    });
+                  },
                 );
               },
             ),

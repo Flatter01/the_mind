@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:srm/src/the_mind/the_mind_group/data/models/group_model.dart';
 import 'package:srm/src/the_mind/the_mind_group/presentation/cubit/group/group_cubit.dart';
 import 'package:srm/src/the_mind/the_mind_group/presentation/cubit/group/group_state.dart';
 import 'package:srm/src/the_mind/the_mind_teacher/data/model/teacher_model.dart';
@@ -10,7 +11,8 @@ import 'package:srm/src/the_mind/the_mind_teacher/presentation/cubit/teacher_sta
 enum TeacherRateType { fixed, percent }
 
 class CreateGroupPage extends StatefulWidget {
-  const CreateGroupPage({super.key});
+  final GroupModel? group; // если передан — режим редактирования
+  const CreateGroupPage({super.key, this.group});
 
   @override
   State<CreateGroupPage> createState() => _CreateGroupPageState();
@@ -77,13 +79,60 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
     'advanced': 'Продвинутый (Advanced)',
   };
 
+  bool get _isEditing => widget.group != null;
+
+  TimeOfDay? _parseTime(String? t) {
+    if (t == null || t.isEmpty) return null;
+    final parts = t.split(':');
+    if (parts.length < 2) return null;
+    final h = int.tryParse(parts[0]);
+    final m = int.tryParse(parts[1]);
+    if (h == null || m == null) return null;
+    return TimeOfDay(hour: h, minute: m);
+  }
+
+  Set<int> _parseDays(String? raw) {
+    if (raw == null || raw.isEmpty) return {};
+    final dayMap = {
+      'monday': 1, 'tuesday': 2, 'wednesday': 3,
+      'thursday': 4, 'friday': 5, 'saturday': 6, 'sunday': 7,
+      'пн': 1, 'вт': 2, 'ср': 3, 'чт': 4, 'пт': 5, 'сб': 6, 'вс': 7,
+    };
+    final result = <int>{};
+    for (final part in raw.split(',')) {
+      final s = part.trim().toLowerCase();
+      final n = int.tryParse(s);
+      if (n != null) {
+        result.add(n);
+      } else {
+        final mapped = dayMap[s];
+        if (mapped != null) result.add(mapped);
+      }
+    }
+    return result;
+  }
+
   @override
   void initState() {
     super.initState();
     context.read<TeacherCubit>().getTeachers();
-    // Ставим дату по умолчанию — сегодня
-    _startDate = DateTime.now();
-    _endDate = DateTime.now().add(const Duration(days: 30));
+    final g = widget.group;
+    if (g != null) {
+      _groupName.text = g.name ?? '';
+      _studentPrice.text = g.price ?? '0';
+      _roomCtrl.text = g.room?.toString() ?? '0';
+      _selectedLevel = g.level;
+      _selectedTeacherId = g.teacher;
+      _isActive = g.isActive ?? true;
+      _startTime = _parseTime(g.startTime);
+      _endTime = _parseTime(g.endTime);
+      _startDate = DateTime.tryParse(g.startDate ?? '');
+      _endDate = DateTime.tryParse(g.endDate ?? '');
+      _selectedDays.addAll(_parseDays(g.weekDays));
+    } else {
+      _startDate = DateTime.now();
+      _endDate = DateTime.now().add(const Duration(days: 30));
+    }
   }
 
   @override
@@ -135,19 +184,36 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
       }
     }
 
-    await context.read<GroupCubit>().createGroup(
-          name: _groupName.text.trim(),
-          level: _selectedLevel!,
-          teacher: _selectedTeacherId!,
-          room: int.tryParse(_roomCtrl.text) ?? 0,
-          price: priceText.isEmpty ? '0' : priceText,
-          weekDays: _weekDaysList,
-          startTime: _fmt(_startTime!),
-          endTime: _fmt(_endTime!),
-          isActive: _isActive,
-          startDate: _fmtDate(_startDate!),         // ✅ обязательное
-          endDate: _endDate != null ? _fmtDate(_endDate!) : '',
-        );
+    if (_isEditing) {
+      await context.read<GroupCubit>().updateGroup(
+            id: widget.group!.id!,
+            name: _groupName.text.trim(),
+            level: _selectedLevel!,
+            teacher: _selectedTeacherId!,
+            room: int.tryParse(_roomCtrl.text) ?? 0,
+            price: priceText.isEmpty ? '0' : priceText,
+            weekDays: _weekDaysList,
+            startTime: _fmt(_startTime!),
+            endTime: _fmt(_endTime!),
+            isActive: _isActive,
+            startDate: _fmtDate(_startDate!),
+            endDate: _endDate != null ? _fmtDate(_endDate!) : '',
+          );
+    } else {
+      await context.read<GroupCubit>().createGroup(
+            name: _groupName.text.trim(),
+            level: _selectedLevel!,
+            teacher: _selectedTeacherId!,
+            room: int.tryParse(_roomCtrl.text) ?? 0,
+            price: priceText.isEmpty ? '0' : priceText,
+            weekDays: _weekDaysList,
+            startTime: _fmt(_startTime!),
+            endTime: _fmt(_endTime!),
+            isActive: _isActive,
+            startDate: _fmtDate(_startDate!),
+            endDate: _endDate != null ? _fmtDate(_endDate!) : '',
+          );
+    }
   }
 
   void _showError(BuildContext context, String msg) {
@@ -164,11 +230,13 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
       insetPadding: const EdgeInsets.symmetric(horizontal: 40, vertical: 32),
       child: BlocListener<GroupCubit, GroupState>(
         listener: (context, state) {
-          if (state is GroupLoaded) {
+          if (state is GroupLoaded || state is GroupDetailsLoaded) {
             Navigator.pop(context);
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Группа успешно создана!'),
+              SnackBar(
+                content: Text(_isEditing
+                    ? 'Группа успешно обновлена!'
+                    : 'Группа успешно создана!'),
                 backgroundColor: Colors.green,
               ),
             );
@@ -184,9 +252,9 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Создать группу',
-                    style: TextStyle(
+                  Text(
+                    _isEditing ? 'Редактировать группу' : 'Создать группу',
+                    style: const TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.w800,
                       color: Color(0xFF1A2233),

@@ -253,7 +253,7 @@ class _TheMindSalaryPageState extends State<TheMindSalaryPage> {
       name: 'Базовый',
       price: '5 000',
       period: 'мес',
-      duration: '1 месяц',
+      duration: '1 Месяц',
       isActive: true,
       isPopular: false,
     ),
@@ -261,7 +261,7 @@ class _TheMindSalaryPageState extends State<TheMindSalaryPage> {
       name: 'Продвинутый',
       price: '12 000',
       period: 'мес',
-      duration: '3 месяца',
+      duration: '3 Месяца',
       isActive: true,
       isPopular: true,
     ),
@@ -269,7 +269,7 @@ class _TheMindSalaryPageState extends State<TheMindSalaryPage> {
       name: 'VIP',
       price: '45 000',
       period: 'год',
-      duration: '1 год',
+      duration: '1 Год',
       isActive: false,
       isPopular: false,
     ),
@@ -303,7 +303,7 @@ class _TheMindSalaryPageState extends State<TheMindSalaryPage> {
             const Spacer(),
 
             ElevatedButton.icon(
-              onPressed: () {},
+              onPressed: () => _openTariffAddDialog(),
               icon: const Icon(
                 Icons.add_circle_outline,
                 color: Colors.white,
@@ -369,24 +369,24 @@ class _TheMindSalaryPageState extends State<TheMindSalaryPage> {
         // Карточки тарифов
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: _tariffs
-              .map(
-                (t) => Expanded(
-                  child: Padding(
-                    padding: _tariffs.indexOf(t) < _tariffs.length - 1
-                        ? const EdgeInsets.only(right: 16)
-                        : EdgeInsets.zero,
-                    child: _tariffCard(t),
-                  ),
-                ),
-              )
-              .toList(),
+          children: _tariffs.asMap().entries.map((e) {
+            final idx = e.key;
+            final t = e.value;
+            return Expanded(
+              child: Padding(
+                padding: idx < _tariffs.length - 1
+                    ? const EdgeInsets.only(right: 16)
+                    : EdgeInsets.zero,
+                child: _tariffCard(t, idx),
+              ),
+            );
+          }).toList(),
         ),
       ],
     );
   }
 
-  Widget _tariffCard(_TariffItem t) {
+  Widget _tariffCard(_TariffItem t, int index) {
     final isPopular = t.isPopular;
 
     return Container(
@@ -427,16 +427,22 @@ class _TheMindSalaryPageState extends State<TheMindSalaryPage> {
                       ),
                     ),
                     const Spacer(),
-                    Icon(
-                      Icons.edit_outlined,
-                      size: 16,
-                      color: Colors.grey[400],
+                    GestureDetector(
+                      onTap: () => _editTariff(t, index),
+                      child: Icon(
+                        Icons.edit_outlined,
+                        size: 16,
+                        color: Colors.grey[400],
+                      ),
                     ),
                     const SizedBox(width: 10),
-                    Icon(
-                      Icons.delete_outline,
-                      size: 16,
-                      color: Colors.grey[400],
+                    GestureDetector(
+                      onTap: () => _deleteTariff(index),
+                      child: Icon(
+                        Icons.delete_outline,
+                        size: 16,
+                        color: Colors.grey[400],
+                      ),
                     ),
                   ],
                 ),
@@ -507,7 +513,7 @@ class _TheMindSalaryPageState extends State<TheMindSalaryPage> {
                   width: double.infinity,
                   child: isPopular
                       ? ElevatedButton(
-                          onPressed: () {},
+                          onPressed: () => _editTariff(t, index),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFFED6A2E),
                             elevation: 0,
@@ -526,7 +532,7 @@ class _TheMindSalaryPageState extends State<TheMindSalaryPage> {
                           ),
                         )
                       : OutlinedButton(
-                          onPressed: () {},
+                          onPressed: () => _editTariff(t, index),
                           style: OutlinedButton.styleFrom(
                             side: BorderSide(
                               color: Colors.grey.withOpacity(0.25),
@@ -584,20 +590,98 @@ class _TheMindSalaryPageState extends State<TheMindSalaryPage> {
     );
   }
 
-  void _openTariffDialog({Tariff? tariff, int? index}) {
+  void _openTariffAddDialog() {
     showDialog(
       context: context,
       builder: (_) => TariffDialog(
-        tariff: tariff,
         onSave: (t) {
           setState(() {
-            if (tariff == null) {
-              tariffs.add(t);
-            } else {
-              tariffs[index!] = t;
-            }
+            _tariffs.add(_TariffItem(
+              name: t.name,
+              price: t.price.toStringAsFixed(0),
+              period: 'мес',
+              duration: t.duration,
+              isActive: true,
+              isPopular: false,
+            ));
           });
         },
+      ),
+    );
+  }
+
+  static const _validDurations = ['1 Месяц', '3 Месяца', '6 Месяцев', '1 Год'];
+
+  String _normalizeDuration(String d) {
+    if (_validDurations.contains(d)) return d;
+    const map = {
+      '1 месяц': '1 Месяц',
+      '3 месяца': '3 Месяца',
+      '6 месяцев': '6 Месяцев',
+      '1 год': '1 Год',
+    };
+    return map[d.toLowerCase()] ?? '1 Месяц';
+  }
+
+  void _editTariff(_TariffItem t, int index) {
+    showDialog(
+      context: context,
+      builder: (_) => TariffDialog(
+        tariff: Tariff(
+          name: t.name,
+          price: double.tryParse(t.price.replaceAll(' ', '')) ?? 0,
+          duration: _normalizeDuration(t.duration),
+          description: '',
+        ),
+        onSave: (updated) {
+          setState(() {
+            _tariffs[index] = _TariffItem(
+              name: updated.name,
+              price: updated.price.toStringAsFixed(0),
+              period: t.period,
+              duration: updated.duration,
+              isActive: t.isActive,
+              isPopular: t.isPopular,
+            );
+          });
+        },
+      ),
+    );
+  }
+
+  void _deleteTariff(int index) {
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text(
+          'Удалить тариф',
+          style: TextStyle(fontWeight: FontWeight.w700),
+        ),
+        content: const Text('Вы уверены, что хотите удалить этот тариф?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx),
+            child: Text('Отмена', style: TextStyle(color: Colors.grey[600])),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFED6A2E),
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            onPressed: () {
+              Navigator.pop(dialogCtx);
+              setState(() => _tariffs.removeAt(index));
+            },
+            child: const Text(
+              'Удалить',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
       ),
     );
   }

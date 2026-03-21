@@ -308,7 +308,7 @@ class _AnalyticsLidsState extends State<AnalyticsLids> {
               const SizedBox(height: 12),
               _buildTextField(
                   controller: amtCtrl,
-                  label: 'Сумма (Сум)',
+                  label: 'Сумма',
                   isNumber: true),
               const SizedBox(height: 16),
               Row(
@@ -806,21 +806,40 @@ class _AnalyticsLidsState extends State<AnalyticsLids> {
   }
 
   Widget _filterDropdown() {
-    final options = ['Все этапы', 'Только платные', 'Топ воронка'];
+    const orange = Color(0xFFED6A2E);
+    const defaultFilter = 'Все этапы';
+    final options = [defaultFilter, 'Только платные', 'Топ воронка'];
+    final isActive = _selectedFilter != defaultFilter;
+
     return Container(
       height: 32,
       padding: const EdgeInsets.symmetric(horizontal: 10),
       decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey.shade300),
+        color: isActive ? orange.withOpacity(0.06) : Colors.transparent,
+        border: Border.all(
+          color: isActive ? orange.withOpacity(0.5) : Colors.grey.shade300,
+        ),
         borderRadius: BorderRadius.circular(8),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: _selectedFilter,
-          style: const TextStyle(fontSize: 12, color: Color(0xFF1A2233)),
-          items: options
-              .map((o) => DropdownMenuItem(value: o, child: Text(o)))
-              .toList(),
+          dropdownColor: Colors.white,
+          icon: Icon(Icons.keyboard_arrow_down, size: 16, color: isActive ? orange : Colors.grey.shade500),
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
+            color: isActive ? orange : const Color(0xFF1A2233),
+          ),
+          items: options.map((o) {
+            return DropdownMenuItem(
+              value: o,
+              child: _HoverDropdownItem(
+                label: o,
+                isSelected: o == _selectedFilter,
+              ),
+            );
+          }).toList(),
           onChanged: (v) => setState(() => _selectedFilter = v!),
         ),
       ),
@@ -1392,6 +1411,38 @@ class _FunnelStageCard extends StatelessWidget {
 }
 
 // ─── СТРЕЛКА МЕЖДУ ЭТАПАМИ ────────────────────────────────────────────────────
+
+class _HoverDropdownItem extends StatefulWidget {
+  final String label;
+  final bool isSelected;
+  const _HoverDropdownItem({required this.label, required this.isSelected});
+
+  @override
+  State<_HoverDropdownItem> createState() => _HoverDropdownItemState();
+}
+
+class _HoverDropdownItemState extends State<_HoverDropdownItem> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    const orange = Color(0xFFED6A2E);
+    final active = _hovered || widget.isSelected;
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onHover: (_) { if (!_hovered) setState(() => _hovered = true); },
+      onExit: (_) { if (mounted) setState(() => _hovered = false); },
+      child: Text(
+        widget.label,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: widget.isSelected ? FontWeight.w600 : FontWeight.normal,
+          color: active ? orange : const Color(0xFF1A2233),
+        ),
+      ),
+    );
+  }
+}
 
 class _FunnelArrow extends StatelessWidget {
   const _FunnelArrow();

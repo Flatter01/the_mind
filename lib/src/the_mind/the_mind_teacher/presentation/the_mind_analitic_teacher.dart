@@ -15,6 +15,8 @@ class _TheMindAnaliticTeacherState extends State<TheMindAnaliticTeacher> {
   int _currentPage = 1;
   final int _perPage = 5;
   String _selectedMonth = 'Март 2026';
+  // Индексы строк где прибыль скрыта
+  final Set<int> _hiddenProfitRows = {};
 
   static const _orange = Color(0xFFED6A2E);
   static const _orangeLight = Color(0xFFFFF3EE);
@@ -350,16 +352,16 @@ class _TheMindAnaliticTeacherState extends State<TheMindAnaliticTeacher> {
                           color: Colors.grey.withOpacity(0.1)),
                     ),
                   ),
-                  child: const Row(
+                  child: Row(
                     children: [
-                      Expanded(flex: 3, child: _ColH('ИМЯ УЧИТЕЛЯ')),
-                      Expanded(flex: 3, child: _ColH('КУРС')),
-                      Expanded(flex: 2, child: _ColH('СТУДЕНТОВ')),
-                      Expanded(flex: 2, child: _ColH('ЦЕНА')),
-                      Expanded(flex: 3, child: _ColH('ДОХОД')),
-                      Expanded(flex: 3, child: _ColH('ЗАРПЛАТА')),
-                      Expanded(flex: 3, child: _ColH('ПРИБЫЛЬ')),
-                      SizedBox(width: 40),
+                      const Expanded(flex: 3, child: _ColH('ИМЯ УЧИТЕЛЯ')),
+                      const Expanded(flex: 3, child: _ColH('КУРС')),
+                      const Expanded(flex: 2, child: _ColH('СТУДЕНТОВ')),
+                      const Expanded(flex: 2, child: _ColH('ЦЕНА')),
+                      const Expanded(flex: 3, child: _ColH('ДОХОД')),
+                      const Expanded(flex: 3, child: _ColH('ЗАРПЛАТА')),
+                      const Expanded(flex: 3, child: _ColH('ПРИБЫЛЬ')),
+                      const SizedBox(width: 40),
                     ],
                   ),
                 ),
@@ -375,7 +377,7 @@ class _TheMindAnaliticTeacherState extends State<TheMindAnaliticTeacher> {
                     ),
                   )
                 else
-                  ...pageItems.map(_teacherRow),
+                  ...pageItems.asMap().entries.map((e) => _teacherRow(e.value, e.key)),
 
                 // Пагинация
                 Container(
@@ -410,7 +412,7 @@ class _TheMindAnaliticTeacherState extends State<TheMindAnaliticTeacher> {
 
   // ── Строка учителя ────────────────────────────────────────────────────────
 
-  Widget _teacherRow(Map<String, dynamic> t) {
+  Widget _teacherRow(Map<String, dynamic> t, int index) {
     return InkWell(
       onTap: (){
         Navigator.push(context,   
@@ -519,23 +521,36 @@ class _TheMindAnaliticTeacherState extends State<TheMindAnaliticTeacher> {
             // Прибыль
             Expanded(
               flex: 3,
-              child: Text(
-                '+${_fmt(t['profit'] as int)}',
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: _green,
-                ),
-              ),
+              child: _hiddenProfitRows.contains(index)
+                  ? Text('••••••', style: TextStyle(fontSize: 13, color: Colors.grey[300]))
+                  : Text(
+                      '+${_fmt(t['profit'] as int)}',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: _green,
+                      ),
+                    ),
             ),
-      
+
             // Действие
             SizedBox(
               width: 40,
               child: IconButton(
-                onPressed: () {},
-                icon: Icon(Icons.remove_red_eye_outlined,
-                    size: 18, color: Colors.grey[400]),
+                onPressed: () => setState(() {
+                  if (_hiddenProfitRows.contains(index)) {
+                    _hiddenProfitRows.remove(index);
+                  } else {
+                    _hiddenProfitRows.add(index);
+                  }
+                }),
+                icon: Icon(
+                  _hiddenProfitRows.contains(index)
+                      ? Icons.visibility_off_outlined
+                      : Icons.remove_red_eye_outlined,
+                  size: 18,
+                  color: _hiddenProfitRows.contains(index) ? _orange : Colors.grey[400],
+                ),
                 padding: EdgeInsets.zero,
               ),
             ),

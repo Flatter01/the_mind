@@ -55,6 +55,39 @@ class ExamCubit extends Cubit<ExamState> {
     }
   }
 
+  Future<void> updateExam({
+    required String id,
+    required String title,
+    required String teacher,
+    required int group,
+    required String examDate,
+    required String startTime,
+    required String endTime,
+    required int passScore,
+    required bool isPercentage,
+    required bool isActive,
+  }) async {
+    if (isClosed) return;
+    try {
+      await api.updateExam(
+        id: id,
+        title: title,
+        teacher: teacher,
+        group: group,
+        examDate: examDate,
+        startTime: startTime,
+        endTime: endTime,
+        passScore: passScore,
+        isPercentage: isPercentage,
+        isActive: isActive,
+      );
+      await getExams();
+    } catch (e) {
+      if (isClosed) return;
+      emit(ExamError(e.toString()));
+    }
+  }
+
   Future<void> deleteExam(String id) async {
     if (isClosed) return;
     try {

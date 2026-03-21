@@ -112,6 +112,43 @@ class GroupRepository {
   }
 
   // ✅ week_days как List<int>
+  Future<void> updateGroup({
+    required int id,
+    required String name,
+    required String level,
+    required String teacher,
+    required int? room,
+    required List<int> weekDays,
+    required String price,
+    required String startDate,
+    required String endDate,
+    required String startTime,
+    required String endTime,
+    required bool isActive,
+  }) async {
+    try {
+      final body = <String, dynamic>{
+        'name': name,
+        'level': level,
+        'teacher': teacher,
+        'price': price,
+        'start_time': startTime,
+        'end_time': endTime,
+        'is_active': isActive,
+        'week_days': weekDays,
+      };
+      if (room != null && room > 0) body['room'] = room;
+      if (startDate.isNotEmpty) body['start_date'] = startDate;
+      if (endDate.isNotEmpty) body['end_date'] = endDate;
+
+      await _dio.patch('/group/groups/$id/', data: body);
+    } on DioException catch (e) {
+      throw Exception(
+        'Ошибка обновления группы: ${e.response?.data ?? e.message}',
+      );
+    }
+  }
+
   Future<void> createGroup({
     required String name,
     required String level,

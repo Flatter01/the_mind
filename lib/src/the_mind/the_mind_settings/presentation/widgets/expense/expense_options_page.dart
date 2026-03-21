@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:srm/src/the_mind/the_mind_students/presentation/student/widgets/filter/filters_card.dart';
 
 class ExpenseOptionsPage extends StatefulWidget {
   const ExpenseOptionsPage({super.key});
@@ -164,23 +165,15 @@ class _ExpenseOptionsPageState extends State<ExpenseOptionsPage> {
                               children: [
                                 _fieldLabel('Категория'),
                                 const SizedBox(height: 6),
-                                Container(
-                                  height: 44,
-                                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFF8F9FB),
-                                    borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(color: Colors.grey.withOpacity(0.15)),
-                                  ),
-                                  child: DropdownButtonHideUnderline(
-                                    child: DropdownButton<String>(
-                                      value: _selectedCategory,
-                                      isExpanded: true,
-                                      icon: Icon(Icons.keyboard_arrow_down, size: 18, color: Colors.grey[500]),
-                                      style: const TextStyle(fontSize: 13, color: Color(0xFF1A2233)),
-                                      items: _categories.map((c) => DropdownMenuItem(value: c['name'] as String, child: Text(c['name'] as String))).toList(),
-                                      onChanged: (v) => setState(() => _selectedCategory = v!),
-                                    ),
+                                FilterDropdown(
+                                  hint: 'Категория',
+                                  value: _selectedCategory,
+                                  items: {
+                                    for (final c in _categories)
+                                      c['name'] as String: c['name'] as String,
+                                  },
+                                  onChanged: (v) => setState(
+                                    () => _selectedCategory = v ?? _selectedCategory,
                                   ),
                                 ),
                               ],

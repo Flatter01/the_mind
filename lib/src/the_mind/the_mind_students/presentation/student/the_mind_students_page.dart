@@ -41,21 +41,6 @@ class _TheMindStudentsPageState extends State<TheMindStudentsPage> {
     context.read<StudentCubit>().getStudents();
   }
 
-  // ✅ Конвертируем API статус → русский лейбл (совпадает с StudentRow)
-  String _statusLabel(String apiStatus) {
-    switch (apiStatus.toLowerCase()) {
-      case 'inactive':
-        return 'Не активен';
-      case 'trial':
-        return 'Пробный';
-      case 'debtor':
-      case 'qarzdor':
-        return 'Должник';
-      default:
-        return 'Активен';
-    }
-  }
-
   List<AnalyticItem> _buildAnalytics(DashboardModel dashboard) {
     final cards = dashboard.cards;
     return [
@@ -145,6 +130,12 @@ class _TheMindStudentsPageState extends State<TheMindStudentsPage> {
 
           final students = state.students;
 
+          // Map groupId → weekDays для фильтра по дням
+          final groupWeekDays = {
+            for (final g in groups)
+              if (g.id != null) g.id.toString(): g.weekDays ?? '',
+          };
+
           final filtered = students.where((s) {
             final q = _search.toLowerCase();
 
@@ -165,12 +156,43 @@ class _TheMindStudentsPageState extends State<TheMindStudentsPage> {
                   _selectedCourse!.toLowerCase(),
                 );
 
-            // ✅ ФИКС: сравниваем русский лейбл с русским лейблом
-            final matchStatus =
-                _selectedStatus == null ||
-                _statusLabel(s.status) == _selectedStatus;
+            final matchStatus = _selectedStatus == null || () {
+              final st = s.status.toLowerCase();
+              switch (_selectedStatus) {
+                case 'active':   return st == 'active';
+                case 'inactive': return st == 'inactive';
+                case 'trial':    return st == 'trial';
+                case 'frozen':   return st == 'frozen';
+                case 'debtor':   return (double.tryParse(s.balance) ?? 0) < 0;
+                default:         return true;
+              }
+            }();
 
-            return matchSearch && matchTeacher && matchCourse && matchStatus;
+            // ✅ Фильтр по чётным/нечётным дням
+            bool matchDayType = true;
+            if (_selectedDayType != null) {
+              final days = (groupWeekDays[s.groupId ?? ''] ?? '').toLowerCase();
+              // Чётные = пн/ср/пт (Monday, Wednesday, Friday, 1, 3, 5)
+              final isEven = days.contains('mon') ||
+                  days.contains('wed') ||
+                  days.contains('fri') ||
+                  days.contains('пн') ||
+                  days.contains('ср') ||
+                  days.contains('пт') ||
+                  RegExp(r'\b[135]\b').hasMatch(days);
+              // Нечётные = вт/чт/сб (Tuesday, Thursday, Saturday, 2, 4, 6)
+              final isOdd = days.contains('tue') ||
+                  days.contains('thu') ||
+                  days.contains('sat') ||
+                  days.contains('вт') ||
+                  days.contains('чт') ||
+                  days.contains('сб') ||
+                  RegExp(r'\b[246]\b').hasMatch(days);
+              if (_selectedDayType == 'even') matchDayType = isEven;
+              if (_selectedDayType == 'odd') matchDayType = isOdd;
+            }
+
+            return matchSearch && matchTeacher && matchCourse && matchStatus && matchDayType;
           }).toList();
 
           final totalPages = (filtered.length / _perPage).ceil().clamp(1, 999);

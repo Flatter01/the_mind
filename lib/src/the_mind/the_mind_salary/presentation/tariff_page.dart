@@ -32,13 +32,13 @@ class _TariffPageState extends State<TariffPage> {
   void _deleteTariff(int index) {
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogCtx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Удалить тариф', style: TextStyle(fontWeight: FontWeight.w700)),
         content: const Text('Вы уверены, что хотите удалить этот тариф?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogCtx),
             child: Text('Отмена', style: TextStyle(color: Colors.grey[600])),
           ),
           ElevatedButton(
@@ -48,8 +48,8 @@ class _TariffPageState extends State<TariffPage> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
             onPressed: () {
+              Navigator.pop(dialogCtx);
               setState(() => tariffs.removeAt(index));
-              Navigator.pop(context);
             },
             child: const Text('Удалить', style: TextStyle(color: Colors.white)),
           ),

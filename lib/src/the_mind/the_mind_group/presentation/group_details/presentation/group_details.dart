@@ -8,6 +8,7 @@ import 'package:srm/src/the_mind/the_mind_students/data/model/students/student_m
 import 'package:srm/src/the_mind/the_mind_students/data/model/students/student_record_model.dart';
 import 'package:srm/src/the_mind/the_mind_students/presentation/student/cubit/student/student_cubit.dart';
 import 'package:srm/src/the_mind/the_mind_students/presentation/student/cubit/student/student_state.dart';
+import 'package:srm/src/the_mind/the_mind_group/presentation/group_details/presentation/create_group_page.dart';
 
 class GroupDetails extends StatefulWidget {
   final int groupId;
@@ -398,7 +399,13 @@ class _GroupDetailsState extends State<GroupDetails> {
         ),
         const SizedBox(width: 16),
         OutlinedButton.icon(
-          onPressed: () {},
+          onPressed: () => showDialog(
+            context: context,
+            builder: (_) => BlocProvider.value(
+              value: context.read<GroupCubit>(),
+              child: CreateGroupPage(group: group),
+            ),
+          ),
           icon: Icon(Icons.edit_outlined, size: 15, color: Colors.grey[700]),
           label: Text(
             'Редактировать',

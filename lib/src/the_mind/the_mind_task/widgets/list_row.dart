@@ -3,9 +3,9 @@ import 'package:srm/src/the_mind/the_mind_task/the_mind_task_page.dart';
 
 class ListRow extends StatefulWidget {
   final TaskModel task;
-  final void Function(Offset) onStatusTap;
+  final void Function(TaskStatus) onStatusChanged;
 
-  const ListRow({super.key, required this.task, required this.onStatusTap});
+  const ListRow({super.key, required this.task, required this.onStatusChanged});
 
   @override
   State<ListRow> createState() => _ListRowState();
@@ -171,13 +171,51 @@ class _ListRowState extends State<ListRow> {
             // ── Три точки ──
             SizedBox(
               width: 40,
-              child: GestureDetector(
-                onTapDown: (d) => widget.onStatusTap(d.globalPosition),
+              child: PopupMenuButton<TaskStatus>(
+                onSelected: widget.onStatusChanged,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 8,
+                itemBuilder: (_) => TaskStatus.values.map((s) {
+                  final color = _statusColors[s.index];
+                  return PopupMenuItem<TaskStatus>(
+                    value: s,
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            color: color,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
+                          _statusLabels[s.index],
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: t.status == s
+                                ? FontWeight.w700
+                                : FontWeight.normal,
+                            color: t.status == s ? color : const Color(0xFF1A1F36),
+                          ),
+                        ),
+                        if (t.status == s) ...[
+                          const Spacer(),
+                          Icon(Icons.check, size: 14, color: color),
+                        ],
+                      ],
+                    ),
+                  );
+                }).toList(),
                 child: MouseRegion(
                   cursor: SystemMouseCursors.click,
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 100),
-                    width: 32, height: 32,
+                    width: 32,
+                    height: 32,
                     decoration: BoxDecoration(
                       color: _hovered
                           ? Colors.grey.withOpacity(0.08)

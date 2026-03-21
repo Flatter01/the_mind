@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:srm/src/the_mind/the_mind_exams/data/models/exam_model.dart';
 import 'package:srm/src/the_mind/the_mind_exams/presentation/cubit/exam_cubit.dart';
 import 'package:srm/src/the_mind/the_mind_group/presentation/cubit/group/group_cubit.dart';
 import 'package:srm/src/the_mind/the_mind_group/presentation/cubit/group/group_state.dart';
@@ -7,19 +8,20 @@ import 'package:srm/src/the_mind/the_mind_teacher/presentation/cubit/teacher_cub
 import 'package:srm/src/the_mind/the_mind_teacher/presentation/cubit/teacher_state.dart';
 
 class AddExamDialog extends StatefulWidget {
-  const AddExamDialog({super.key});
+  final ExamModel? exam; // если передан — режим редактирования
+  const AddExamDialog({super.key, this.exam});
 
   @override
   State<AddExamDialog> createState() => _AddExamDialogState();
 }
 
 class _AddExamDialogState extends State<AddExamDialog> {
-  final titleController = TextEditingController();
-  final passScoreController = TextEditingController(text: '0');
+  late final TextEditingController titleController;
+  late final TextEditingController passScoreController;
 
   // Храним выбранные значения как ID
-  int? selectedGroupId;       // GroupModel.id (int)
-  String? selectedTeacherId;  // TeacherModel.id (UUID String)
+  int? selectedGroupId; // GroupModel.id (int)
+  String? selectedTeacherId; // TeacherModel.id (UUID String)
 
   // Для отображения в дропдауне
   String? selectedGroupName;
@@ -31,10 +33,36 @@ class _AddExamDialogState extends State<AddExamDialog> {
   bool isPercentage = false;
   bool isActive = true;
 
+  bool get _isEditing => widget.exam != null;
+
   @override
   void initState() {
     super.initState();
+    final e = widget.exam;
+    titleController = TextEditingController(text: e?.title ?? '');
+    passScoreController = TextEditingController(text: e?.passScore.toString() ?? '0');
+
+    if (e != null) {
+      selectedGroupId = e.group;
+      selectedTeacherId = e.teacher;
+      isPercentage = e.isPercentage;
+      isActive = e.isActive;
+      // Парсим дату
+      examDate = DateTime.tryParse(e.examDate);
+      // Парсим время "HH:MM:SS"
+      startTime = _parseTime(e.startTime);
+      endTime = _parseTime(e.endTime);
+    }
     context.read<GroupCubit>().getGroups();
+  }
+
+  TimeOfDay? _parseTime(String t) {
+    final parts = t.split(':');
+    if (parts.length < 2) return null;
+    final h = int.tryParse(parts[0]);
+    final m = int.tryParse(parts[1]);
+    if (h == null || m == null) return null;
+    return TimeOfDay(hour: h, minute: m);
   }
 
   @override
@@ -57,9 +85,9 @@ class _AddExamDialogState extends State<AddExamDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Создать экзамен',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
+              Text(
+                _isEditing ? 'Редактировать экзамен' : 'Создать экзамен',
+                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
               ),
 
               const SizedBox(height: 24),
@@ -165,6 +193,7 @@ class _AddExamDialogState extends State<AddExamDialog> {
   }
 
   // ─── Dropdown групп — данные из GroupCubit ─────────────────────────────────
+  // ─── Dropdown групп ───────────────────────────────────────────────────────────
 
   Widget _buildGroupDropdown() {
     return BlocBuilder<GroupCubit, GroupState>(
@@ -175,14 +204,12 @@ class _AddExamDialogState extends State<AddExamDialog> {
           padding: const EdgeInsets.only(bottom: 16),
           child: DropdownButtonFormField<int>(
             value: selectedGroupId,
-            hint: state is GroupLoading
-                ? const Text('Загрузка...')
-                : const Text('Группа'),
+            // ✅ убрали hint — он дублировал labelText
             items: groups
                 .where((g) => g.id != null && g.name != null)
                 .map(
                   (g) => DropdownMenuItem<int>(
-                    value: g.id,               // ✅ int ID
+                    value: g.id,
                     child: Text(g.name ?? ''),
                   ),
                 )
@@ -196,7 +223,7 @@ class _AddExamDialogState extends State<AddExamDialog> {
               });
             },
             decoration: InputDecoration(
-              labelText: 'Группа',
+              labelText: state is GroupLoading ? 'Загрузка...' : 'Группа',
               filled: true,
               fillColor: const Color(0xFFF6F6F6),
               border: OutlineInputBorder(
@@ -210,7 +237,7 @@ class _AddExamDialogState extends State<AddExamDialog> {
     );
   }
 
-  // ─── Dropdown учителей — данные из TeacherCubit ────────────────────────────
+  // ─── Dropdown учителей ────────────────────────────────────────────────────────
 
   Widget _buildTeacherDropdown() {
     return BlocBuilder<TeacherCubit, TeacherState>(
@@ -221,14 +248,12 @@ class _AddExamDialogState extends State<AddExamDialog> {
           padding: const EdgeInsets.only(bottom: 16),
           child: DropdownButtonFormField<String>(
             value: selectedTeacherId,
-            hint: state is TeacherLoading
-                ? const Text('Загрузка...')
-                : const Text('Преподаватель'),
+            // ✅ убрали hint — он дублировал labelText
             items: teachers
                 .where((t) => t.id.isNotEmpty && t.fullName.isNotEmpty)
                 .map(
                   (t) => DropdownMenuItem<String>(
-                    value: t.id,               // ✅ UUID String
+                    value: t.id,
                     child: Text(t.fullName),
                   ),
                 )
@@ -242,7 +267,9 @@ class _AddExamDialogState extends State<AddExamDialog> {
               });
             },
             decoration: InputDecoration(
-              labelText: 'Преподаватель',
+              labelText: state is TeacherLoading
+                  ? 'Загрузка...'
+                  : 'Преподаватель',
               filled: true,
               fillColor: const Color(0xFFF6F6F6),
               border: OutlineInputBorder(
@@ -279,8 +306,7 @@ class _AddExamDialogState extends State<AddExamDialog> {
                       : '${examDate!.year}-${examDate!.month.toString().padLeft(2, '0')}-${examDate!.day.toString().padLeft(2, '0')}',
                   style: TextStyle(
                     fontSize: 14,
-                    color:
-                        examDate == null ? Colors.grey[500] : Colors.black87,
+                    color: examDate == null ? Colors.grey[500] : Colors.black87,
                   ),
                 ),
               ),
@@ -399,25 +425,40 @@ class _AddExamDialogState extends State<AddExamDialog> {
         '${examDate!.year}-${examDate!.month.toString().padLeft(2, '0')}-${examDate!.day.toString().padLeft(2, '0')}';
 
     try {
-      await context.read<ExamCubit>().addExam(
-            title: titleController.text,
-            teacher: selectedTeacherId!,   // ✅ UUID String
-            group: selectedGroupId!,       // ✅ int
-            examDate: dateStr,
-            startTime: _formatTime(startTime!),
-            endTime: _formatTime(endTime!),
-            passScore: int.tryParse(passScoreController.text) ?? 0,
-            isPercentage: isPercentage,
-            isActive: isActive,
-            createdBy: '',
-          );
+      if (_isEditing) {
+        await context.read<ExamCubit>().updateExam(
+          id: widget.exam!.id,
+          title: titleController.text,
+          teacher: selectedTeacherId!,
+          group: selectedGroupId!,
+          examDate: dateStr,
+          startTime: _formatTime(startTime!),
+          endTime: _formatTime(endTime!),
+          passScore: int.tryParse(passScoreController.text) ?? 0,
+          isPercentage: isPercentage,
+          isActive: isActive,
+        );
+      } else {
+        await context.read<ExamCubit>().addExam(
+          title: titleController.text,
+          teacher: selectedTeacherId!,
+          group: selectedGroupId!,
+          examDate: dateStr,
+          startTime: _formatTime(startTime!),
+          endTime: _formatTime(endTime!),
+          passScore: int.tryParse(passScoreController.text) ?? 0,
+          isPercentage: isPercentage,
+          isActive: isActive,
+          createdBy: '',
+        );
+      }
 
       if (context.mounted) Navigator.pop(context);
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ошибка: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Ошибка: $e')));
       }
     }
   }

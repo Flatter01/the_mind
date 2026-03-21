@@ -152,6 +152,7 @@ class FiltersCard extends StatelessWidget {
                   'inactive': 'Не активен',
                   'debtor': 'Должник',
                   'trial': 'Пробный',
+                  'frozen': 'Заморожен',
                 },
                 onChanged: onStatusChanged,
               ),

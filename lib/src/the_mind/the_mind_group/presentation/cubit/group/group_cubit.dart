@@ -46,6 +46,44 @@ class GroupCubit extends Cubit<GroupState> {
     }
   }
 
+  Future<void> updateGroup({
+    required int id,
+    required String name,
+    required String level,
+    required String teacher,
+    required int? room,
+    required String price,
+    required String startDate,
+    required String endDate,
+    required List<int> weekDays,
+    required String startTime,
+    required String endTime,
+    required bool isActive,
+  }) async {
+    if (isClosed) return;
+    try {
+      await repository.updateGroup(
+        id: id,
+        name: name,
+        level: level,
+        teacher: teacher,
+        room: room,
+        weekDays: weekDays,
+        price: price,
+        startDate: startDate,
+        endDate: endDate,
+        startTime: startTime,
+        endTime: endTime,
+        isActive: isActive,
+      );
+      if (isClosed) return;
+      await getGroupDetails(id);
+    } catch (e) {
+      if (isClosed) return;
+      emit(GroupError(e.toString()));
+    }
+  }
+
   Future<void> createGroup({
     required String name,
     required String level,
